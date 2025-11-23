@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://genseq.dev/schemas/pattern.schema.json",
+  "title": "GenSeq Pattern Configuration",
+  "description": "Configuration for pattern generation",
+  "type": "object",
+  "required": ["id", "type", "bus"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique pattern identifier",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "type": {
+      "type": "string",
+      "description": "Pattern generator type",
+      "enum": ["euclidean", "probability", "phase", "script"]
+    },
+    "bus": {
+      "type": "string",
+      "description": "Logical MIDI bus for output",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether pattern is active",
+      "default": true
+    },
+    "euclidean": {
+      "type": "object",
+      "description": "Euclidean rhythm parameters",
+      "required": ["steps", "pulses"],
+      "properties": {
+        "steps": {
+          "type": "integer",
+          "description": "Total number of steps",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "pulses": {
+          "type": "integer",
+          "description": "Number of active pulses",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "rotation": {
+          "type": "integer",
+          "description": "Pattern rotation offset",
+          "minimum": 0,
+          "default": 0
+        },
+        "note": {
+          "type": "integer",
+          "description": "MIDI note number",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 60
+        },
+        "velocity": {
+          "type": "integer",
+          "description": "MIDI velocity",
+          "minimum": 1,
+          "maximum": 127,
+          "default": 100
+        },
+        "duration": {
+          "type": "number",
+          "description": "Note duration in beats",
+          "minimum": 0.01,
+          "maximum": 16,
+          "default": 0.25
+        }
+      }
+    },
+    "probability": {
+      "type": "object",
+      "description": "Probability pattern parameters",
+      "required": ["steps", "probability"],
+      "properties": {
+        "steps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Trigger probability (0-1)"
+        },
+        "note": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127
+        },
+        "velocity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 127
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "description": "Phase pattern parameters",
+      "required": ["length", "offset"],
+      "properties": {
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        },
+        "offset": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "script": {
+      "type": "object",
+      "description": "Custom script pattern",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to JavaScript file"
+        }
+      }
+    }
+  },
+  "oneOf": [
+    { "required": ["euclidean"] },
+    { "required": ["probability"] },
+    { "required": ["phase"] },
+    { "required": ["script"] }
+  ]
+}

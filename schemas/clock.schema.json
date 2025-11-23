@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://genseq.dev/schemas/clock.schema.json",
+  "title": "GenSeq Clock Configuration",
+  "description": "Configuration for clock timing and tempo",
+  "type": "object",
+  "required": ["bpm", "ppq"],
+  "properties": {
+    "bpm": {
+      "type": "number",
+      "description": "Tempo in beats per minute",
+      "minimum": 20,
+      "maximum": 300,
+      "default": 120
+    },
+    "ppq": {
+      "type": "integer",
+      "description": "Pulses per quarter note (resolution)",
+      "enum": [24, 48, 96, 192, 384, 480, 960],
+      "default": 960
+    },
+    "timeSignature": {
+      "type": "object",
+      "description": "Time signature",
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32,
+          "default": 4
+        },
+        "denominator": {
+          "type": "integer",
+          "enum": [2, 4, 8, 16],
+          "default": 4
+        }
+      },
+      "default": { "numerator": 4, "denominator": 4 }
+    }
+  }
+}

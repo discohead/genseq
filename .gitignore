@@ -1,0 +1,24 @@
+# Node.js / TypeScript
+node_modules/
+dist/
+build/
+*.log
+*.log.*
+.env
+.env.*
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+
+# Build artifacts
+*.tsbuildinfo
+.turbo/

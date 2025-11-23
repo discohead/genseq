@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://genseq.dev/schemas/route.schema.json",
+  "title": "GenSeq Route Configuration",
+  "description": "MIDI routing from logical buses to physical devices",
+  "type": "object",
+  "required": ["bus", "device"],
+  "properties": {
+    "bus": {
+      "type": "string",
+      "description": "Logical bus identifier",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "device": {
+      "type": "string",
+      "description": "MIDI device name or port"
+    },
+    "channel": {
+      "type": "integer",
+      "description": "MIDI channel (1-16)",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 1
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether route is active",
+      "default": true
+    }
+  }
+}

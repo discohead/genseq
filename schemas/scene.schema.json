@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://genseq.dev/schemas/scene.schema.json",
+  "title": "GenSeq Scene Configuration",
+  "description": "Scene with pattern sets and overrides",
+  "type": "object",
+  "required": ["id", "name"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique scene identifier",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable scene name"
+    },
+    "patterns": {
+      "type": "array",
+      "description": "Patterns active in this scene",
+      "items": {
+        "type": "string"
+      }
+    },
+    "overrides": {
+      "type": "object",
+      "description": "Pattern parameter overrides",
+      "additionalProperties": {
+        "type": "object",
+        "description": "Parameter overrides for pattern ID"
+      }
+    },
+    "transition": {
+      "type": "object",
+      "description": "Scene transition settings",
+      "properties": {
+        "quantize": {
+          "type": "string",
+          "description": "Quantization for scene change",
+          "enum": ["immediate", "beat", "bar", "phrase"],
+          "default": "bar"
+        }
+      }
+    }
+  }
+}

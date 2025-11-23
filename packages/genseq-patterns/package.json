@@ -1,0 +1,35 @@
+{
+  "name": "@genseq/patterns",
+  "version": "0.1.0",
+  "description": "GenSeq Pattern Library - Standard pattern generators",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:ci": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "midi",
+    "patterns",
+    "generative",
+    "euclidean"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@genseq/engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.2.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

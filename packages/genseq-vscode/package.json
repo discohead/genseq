@@ -1,0 +1,59 @@
+{
+  "name": "@genseq/vscode",
+  "version": "0.1.0",
+  "description": "GenSeq VS Code Extension",
+  "main": "dist/extension.js",
+  "displayName": "GenSeq MIDI Sequencer",
+  "publisher": "genseq",
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/genseq.config.{json,yaml,yml}"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "genseq.start",
+        "title": "GenSeq: Start Engine"
+      },
+      {
+        "command": "genseq.stop",
+        "title": "GenSeq: Stop Engine"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "genseq",
+          "title": "GenSeq",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:ci": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "@genseq/engine": "workspace:*",
+    "@genseq/patterns": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^2.20.0",
+    "typescript": "^5.2.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "vscode": "^1.80.0",
+    "node": ">=18.0.0"
+  }
+}
