@@ -17,3 +17,6 @@ export { PatternRegistry } from './registry/PatternRegistry';
 
 // Helpers
 export { PatternHelperImpl, defaultPatternHelpers } from './helpers/PatternHelpers';
+
+// Euclidean Pattern
+export { EuclideanPattern, createEuclideanPattern, type EuclideanPatternConfig } from './euclidean/EuclideanPattern';

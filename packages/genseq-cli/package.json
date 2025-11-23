@@ -4,7 +4,7 @@
   "description": "GenSeq CLI - Command-line interface for GenSeq engine",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "type": "module",
+  
   "bin": {
     "genseq": "./dist/cli.js"
   },

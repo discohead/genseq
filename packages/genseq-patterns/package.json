@@ -4,7 +4,7 @@
   "description": "GenSeq Pattern Library - Standard pattern generators",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "type": "module",
+  
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -21,9 +21,6 @@
   ],
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "@genseq/engine": "workspace:*"
-  },
   "devDependencies": {
     "@types/node": "^18.0.0",
     "typescript": "^5.2.0",

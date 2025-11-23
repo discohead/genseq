@@ -108,22 +108,22 @@ Tests for timing-critical code MUST be written and fail BEFORE implementation be
 
 ### Implementation for User Story 1
 
-- [ ] T026 [P] [US1] Implement EuclideanPattern class with Bjorklund algorithm in packages/genseq-patterns/src/euclidean/EuclideanPattern.ts
-- [ ] T027 [P] [US1] Implement Clock entity model and YAML loader in packages/genseq-engine/src/config/entities/ClockEntity.ts
-- [ ] T028 [P] [US1] Implement Pattern entity model and JSON loader in packages/genseq-engine/src/config/entities/PatternEntity.ts
-- [ ] T029 [P] [US1] Implement Route entity model for bus-to-device mapping in packages/genseq-engine/src/config/entities/RouteEntity.ts
-- [ ] T030 [US1] Create pattern executor that connects scheduler to pattern generators in packages/genseq-engine/src/patterns/PatternExecutor.ts
-- [ ] T031 [US1] Implement bus routing system that maps logical buses to physical MIDI ports in packages/genseq-engine/src/midi/BusRouter.ts
-- [ ] T032 [US1] Implement Transport control (start/stop/continue) in packages/genseq-engine/src/transport/TransportController.ts
-- [ ] T033 [US1] Create GenSeqEngine main class integrating Clock, Scheduler, MidiIO, and PatternExecutor in packages/genseq-engine/src/GenSeqEngine.ts
-- [ ] T034 [US1] Implement MIDI output with note-on/note-off and velocity handling in packages/genseq-engine/src/midi/MidiOutputHandler.ts
-- [ ] T035 [US1] Add event emitter for transport events (start, stop, position) in GenSeqEngine class
-- [ ] T036 [US1] Create clock.schema.json defining validation rules for clock configuration in schemas/clock.schema.json
-- [ ] T037 [US1] Create pattern.schema.json with Euclidean pattern parameter validation in schemas/pattern.schema.json
-- [ ] T038 [US1] Create route.schema.json for MIDI routing configuration in schemas/route.schema.json
-- [ ] T039 [US1] Implement performance metric collection for clock jitter (<1ms) in PerformanceMonitor
-- [ ] T040 [US1] Implement performance metric collection for MIDI latency (<5ms) in PerformanceMonitor
-- [ ] T041 [US1] Create example project 'basic-euclidean' with kick pattern in examples/basic-euclidean/
+- [X] T026 [P] [US1] Implement EuclideanPattern class with Bjorklund algorithm in packages/genseq-patterns/src/euclidean/EuclideanPattern.ts
+- [X] T027 [P] [US1] Implement Clock entity model and YAML loader in packages/genseq-engine/src/config/entities/ClockEntity.ts
+- [X] T028 [P] [US1] Implement Pattern entity model and JSON loader in packages/genseq-engine/src/config/entities/PatternEntity.ts
+- [X] T029 [P] [US1] Implement Route entity model for bus-to-device mapping in packages/genseq-engine/src/config/entities/RouteEntity.ts
+- [X] T030 [US1] Create pattern executor that connects scheduler to pattern generators in packages/genseq-engine/src/patterns/PatternExecutor.ts
+- [X] T031 [US1] Implement bus routing system that maps logical buses to physical MIDI ports in packages/genseq-engine/src/midi/BusRouter.ts
+- [X] T032 [US1] Implement Transport control (start/stop/continue) in packages/genseq-engine/src/transport/TransportController.ts
+- [X] T033 [US1] Create GenSeqEngine main class integrating Clock, Scheduler, MidiIO, and PatternExecutor in packages/genseq-engine/src/GenSeqEngine.ts
+- [X] T034 [US1] Implement MIDI output with note-on/note-off and velocity handling in packages/genseq-engine/src/midi/MidiOutputHandler.ts
+- [X] T035 [US1] Add event emitter for transport events (start, stop, position) in GenSeqEngine class
+- [X] T036 [US1] Create clock.schema.json defining validation rules for clock configuration in schemas/clock.schema.json
+- [X] T037 [US1] Create pattern.schema.json with Euclidean pattern parameter validation in schemas/pattern.schema.json
+- [X] T038 [US1] Create route.schema.json for MIDI routing configuration in schemas/route.schema.json
+- [X] T039 [US1] Implement performance metric collection for clock jitter (<1ms) in PerformanceMonitor
+- [X] T040 [US1] Implement performance metric collection for MIDI latency (<5ms) in PerformanceMonitor
+- [X] T041 [US1] Create example project 'basic-euclidean' with kick pattern in examples/basic-euclidean/
 
 **Checkpoint**: User Story 1 complete - user can create pattern file, start engine, hear MIDI output
 

@@ -37,7 +37,7 @@ export interface ValidationContext {
 export class SchemaValidator {
   private ajv: Ajv;
   private config: SchemaValidatorConfig;
-  private customRules: Map<string, (value: any) => string | null> = new Map();
+  private customRules: Map<string, (value: any) => string | null | { path: string; message: string }> = new Map();
   private asyncRules: Map<string, (value: any) => Promise<string | null>> = new Map();
 
   constructor(config: SchemaValidatorConfig = {}) {
@@ -62,10 +62,11 @@ export class SchemaValidator {
       if (path === '_root') {
         const result = rule(data);
         if (result) {
-          if (typeof result === 'object' && 'path' in result) {
+          if (typeof result === 'object') {
+            const objResult = result as { path: string; message: string };
             errors.push({
-              path: result.path,
-              message: result.message,
+              path: objResult.path,
+              message: objResult.message,
               value: data,
               expected: 'valid',
               actual: 'invalid'
@@ -73,7 +74,7 @@ export class SchemaValidator {
           } else {
             errors.push({
               path,
-              message: result,
+              message: result as string,
               value: data,
               expected: 'valid',
               actual: 'invalid'
@@ -85,13 +86,24 @@ export class SchemaValidator {
         if (value !== undefined) {
           const result = rule(value);
           if (result) {
-            errors.push({
-              path,
-              message: result,
-              value,
-              expected: 'valid',
-              actual: 'invalid'
-            });
+            if (typeof result === 'object') {
+              const objResult = result as { path: string; message: string };
+              errors.push({
+                path: objResult.path,
+                message: objResult.message,
+                value,
+                expected: 'valid',
+                actual: 'invalid'
+              });
+            } else {
+              errors.push({
+                path,
+                message: result as string,
+                value,
+                expected: 'valid',
+                actual: 'invalid'
+              });
+            }
           }
         }
       }
