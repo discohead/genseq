@@ -120,11 +120,17 @@ export class BusRouter extends EventEmitter {
 
   /**
    * Apply route transformations to message
+   *
+   * Channel hierarchy:
+   * 1. Pattern channel (if specified) - most specific
+   * 2. Route channel (fallback if pattern doesn't specify) - bus-level default
+   * 3. Transform channelOverride (if present) - explicit override
    */
   private applyTransform(message: RoutedMessage, route: RouteEntity): RoutedMessage {
     const transformed: RoutedMessage = {
       ...message,
-      channel: route.channel
+      // Use pattern channel if set, otherwise fall back to route channel
+      channel: message.channel ?? route.channel
     };
 
     if (!route.transform) {
@@ -151,7 +157,7 @@ export class BusRouter extends EventEmitter {
       transformed.velocity = Math.max(1, Math.min(127, Math.round(velocity)));
     }
 
-    // Apply channel override
+    // Apply channel override (takes precedence over both pattern and route channel)
     if (route.transform.channelOverride !== undefined) {
       transformed.channel = route.transform.channelOverride;
     }

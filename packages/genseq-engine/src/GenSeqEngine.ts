@@ -11,6 +11,10 @@ import { ClockEntityLoader } from './config/entities/ClockEntity';
 import { PatternEntityLoader, type PatternEntity } from './config/entities/PatternEntity';
 import { RouteEntityLoader, type RouteEntity } from './config/entities/RouteEntity';
 import { EuclideanPattern, type PatternContext } from '@genseq/patterns';
+import { HotReloadCoordinator } from './config/HotReloadCoordinator';
+import { PatternFileWatcher } from './hotreload/PatternFileWatcher';
+import { RouteFileWatcher } from './hotreload/RouteFileWatcher';
+import * as path from 'path';
 
 /**
  * T033: GenSeqEngine - main class integrating all components
@@ -25,9 +29,10 @@ import { EuclideanPattern, type PatternContext } from '@genseq/patterns';
  */
 
 export interface GenSeqEngineConfig {
-  clock?: ClockConfig;
+  clock?: ClockConfig | Clock;
   midi?: MidiIOConfig;
   projectPath?: string;
+  enableHotReload?: boolean;
 }
 
 export interface EngineStatus {
@@ -56,15 +61,25 @@ export class GenSeqEngine extends EventEmitter {
   private midiOutputHandler: MidiOutputHandler;
   private transport: TransportController;
   private performanceMonitor: PerformanceMonitor;
+  private hotReloadCoordinator?: HotReloadCoordinator;
+  private patternFileWatcher: PatternFileWatcher | null = null;
+  private routeFileWatcher: RouteFileWatcher | null = null;
 
   // State
   private initialized: boolean = false;
+  private activeConfig: any = null;
 
   constructor(config: GenSeqEngineConfig = {}) {
     super();
 
     // Initialize core components
-    this.clock = new Clock(config.clock || { bpm: 120, ppq: 96 });
+    // Accept either a Clock instance or ClockConfig
+    if (config.clock instanceof Clock) {
+      this.clock = config.clock;
+    } else {
+      this.clock = new Clock(config.clock || { bpm: 120, ppq: 96 });
+    }
+
     this.scheduler = new Scheduler({ clock: this.clock });
     this.midiIO = new MidiIO(config.midi || { enableVirtualLoopback: true });
     this.busRouter = new BusRouter({ midiIO: this.midiIO });
@@ -78,6 +93,15 @@ export class GenSeqEngine extends EventEmitter {
       scheduler: this.scheduler
     });
     this.performanceMonitor = new PerformanceMonitor();
+
+    // Initialize HotReloadCoordinator if enabled
+    if (config.enableHotReload !== false) {
+      this.hotReloadCoordinator = new HotReloadCoordinator({
+        engine: this,
+        clock: this.clock,
+        swapAtBarBoundary: true
+      });
+    }
 
     this.setupEventHandlers();
   }
@@ -138,6 +162,11 @@ export class GenSeqEngine extends EventEmitter {
       this.emit('pattern:disabled', id);
     });
 
+    // Forward pattern regeneration events (T056)
+    this.patternExecutor.on('patternRegenerated', (data) => {
+      this.emit('pattern:regenerated', data);
+    });
+
     // Forward MIDI events
     this.midiOutputHandler.on('noteOn', (data) => {
       this.emit('midi:noteOn', data);
@@ -168,6 +197,29 @@ export class GenSeqEngine extends EventEmitter {
     this.midiOutputHandler.on('error', (error) => {
       this.emit('error', { source: 'midiOutputHandler', ...error });
     });
+
+    // Hot-reload event forwarding (T053)
+    if (this.hotReloadCoordinator) {
+      this.hotReloadCoordinator.on('configSwapped', (event: any) => {
+        this.emit('config:reloaded', {
+          timestamp: Date.now(),
+          latencyMs: event.latency,
+          filesChanged: event.filesChanged || []
+        });
+      });
+
+      this.hotReloadCoordinator.on('validationFailed', (event: any) => {
+        this.emit('config:error', {
+          timestamp: Date.now(),
+          error: event.error?.message || 'Configuration validation failed',
+          details: event.error
+        });
+      });
+
+      this.hotReloadCoordinator.on('error', (error: Error) => {
+        this.emit('error', { source: 'hotReloadCoordinator', error });
+      });
+    }
   }
 
   /**
@@ -223,21 +275,92 @@ export class GenSeqEngine extends EventEmitter {
       const patterns = PatternEntityLoader.loadFromDirectory(patternsPath);
 
       for (const pattern of patterns) {
-        // Create pattern generator based on type
-        if (pattern.type === 'euclidean') {
-          const euclideanPattern = new EuclideanPattern({
-            steps: pattern.parameters.steps || 16,
-            pulses: pattern.parameters.pulses || 4,
-            rotation: pattern.parameters.rotation || 0,
-            note: pattern.note || 60,
-            velocity: pattern.parameters.velocity || 100,
-            duration: pattern.parameters.gateLength || 0.25
-          });
+        this.loadPattern(pattern);
+      }
 
-          this.patternExecutor.addPattern(pattern, (context: PatternContext) =>
-            euclideanPattern.tick(context)
-          );
-        }
+      // Start watching pattern directory for hot-reload (T056)
+      if (this.hotReloadCoordinator) {
+        this.patternFileWatcher = new PatternFileWatcher({
+          clock: this.clock,
+          patternsPath,
+          swapAtBarBoundary: true
+        });
+
+        // Forward lifecycle events
+        this.patternFileWatcher.on('configChanging', (event: any) => {
+          this.emit('config:changing', event);
+        });
+
+        this.patternFileWatcher.on('swapScheduled', (event: any) => {
+          this.emit('config:swapScheduled', event);
+        });
+
+        this.patternFileWatcher.on('swapExecuting', () => {
+          this.emit('config:swapExecuting');
+        });
+
+        this.patternFileWatcher.on('configSwapped', (event: any) => {
+          this.emit('config:reloaded', {
+            timestamp: Date.now(),
+            latencyMs: event.latency,
+            filesChanged: []
+          });
+        });
+
+        // Handle pattern updates
+        this.patternFileWatcher.on('patternUpdated', (event: any) => {
+          this.reloadPattern(event.id, event.pattern);
+        });
+
+        // Forward errors
+        this.patternFileWatcher.on('error', (error: Error) => {
+          this.emit('config:error', {
+            timestamp: Date.now(),
+            error: error.message,
+            details: error
+          });
+        });
+
+        await this.patternFileWatcher.start();
+      }
+
+      // Start watching routes directory for hot-reload
+      if (this.hotReloadCoordinator) {
+        const routesPath = `${projectPath}/routes`;
+        this.routeFileWatcher = new RouteFileWatcher({
+          clock: this.clock,
+          routesPath,
+          swapAtBarBoundary: true
+        });
+
+        // Forward lifecycle events
+        this.routeFileWatcher.on('config:swapScheduled', (event: any) => {
+          this.emit('config:swapScheduled', event);
+        });
+
+        this.routeFileWatcher.on('config:swapExecuting', () => {
+          this.emit('config:swapExecuting');
+        });
+
+        this.routeFileWatcher.on('config:reloaded', (event: any) => {
+          this.emit('config:reloaded', event);
+        });
+
+        // Handle route updates
+        this.routeFileWatcher.on('routeUpdated', (event: any) => {
+          this.reloadRoute(event.id, event.route);
+        });
+
+        // Forward errors
+        this.routeFileWatcher.on('config:error', (error: any) => {
+          this.emit('config:error', {
+            timestamp: Date.now(),
+            error: error.error?.message || error.message,
+            details: error.details
+          });
+        });
+
+        await this.routeFileWatcher.start();
       }
 
       this.emit('project:loaded', { projectPath, patterns: patterns.length, routes: routes.length });
@@ -332,6 +455,96 @@ export class GenSeqEngine extends EventEmitter {
   }
 
   /**
+   * Load pattern from entity (creates appropriate generator)
+   */
+  private loadPattern(pattern: PatternEntity): void {
+    if (pattern.type === 'euclidean') {
+      const euclideanPattern = new EuclideanPattern({
+        steps: pattern.parameters.steps || 16,
+        pulses: pattern.parameters.pulses || 4,
+        rotation: pattern.parameters.rotation || 0,
+        note: pattern.note || 60,
+        velocity: pattern.parameters.velocity || 100,
+        duration: pattern.parameters.gateLength || 0.25
+      });
+
+      this.patternExecutor.addPattern(
+        pattern,
+        (context: PatternContext) => euclideanPattern.tick(context),
+        euclideanPattern // Pass instance for hot-reload
+      );
+    }
+  }
+
+  /**
+   * Reload pattern with updated parameters (T056)
+   */
+  private reloadPattern(id: string, patternEntity: PatternEntity): void {
+    try {
+      // Translate parameters to EuclideanPatternConfig format if needed
+      const translatedParams: Record<string, any> = { ...patternEntity.parameters };
+
+      // Map gateLength → duration for EuclideanPattern
+      if (patternEntity.type === 'euclidean' && translatedParams.gateLength !== undefined) {
+        translatedParams.duration = translatedParams.gateLength;
+      }
+
+      // Map entity-level fields (note, channel, enabled, bus) and velocity from entity level if present
+      if (patternEntity.note !== undefined) {
+        translatedParams.note = patternEntity.note;
+      }
+      if (patternEntity.channel !== undefined) {
+        translatedParams.channel = patternEntity.channel;
+      }
+      if (patternEntity.enabled !== undefined) {
+        translatedParams.enabled = patternEntity.enabled;
+      }
+      if (patternEntity.bus !== undefined) {
+        translatedParams.bus = patternEntity.bus;
+      }
+      if (patternEntity.parameters.velocity !== undefined) {
+        translatedParams.velocity = patternEntity.parameters.velocity;
+      }
+
+      // Update pattern parameters
+      this.patternExecutor.updatePatternParameters(id, translatedParams);
+
+      // Emit pattern update event
+      this.emit('pattern:updated', {
+        id,
+        parameters: patternEntity.parameters
+      });
+
+      // Pattern regeneration will happen at cycle boundary automatically
+    } catch (error) {
+      this.emit('error', { source: 'reloadPattern', error, patternId: id });
+    }
+  }
+
+  /**
+   * Reload route with updated configuration
+   * Hot-reload support for route files
+   */
+  private reloadRoute(id: string, routeEntity: RouteEntity): void {
+    try {
+      // Update route in BusRouter
+      this.busRouter.updateRoute(id, routeEntity);
+
+      // Emit route update event
+      this.emit('route:updated', {
+        id,
+        route: routeEntity
+      });
+
+      // Note: MIDI port reconnection not yet implemented
+      // For now, route updates only affect routing parameters (channel, transforms)
+      // Device changes require engine restart
+    } catch (error) {
+      this.emit('error', { source: 'reloadRoute', error, routeId: id });
+    }
+  }
+
+  /**
    * Add pattern dynamically
    */
   addPattern(pattern: PatternEntity, generator: any): void {
@@ -374,11 +587,50 @@ export class GenSeqEngine extends EventEmitter {
   }
 
   /**
+   * Get active configuration
+   */
+  getActiveConfig(): any {
+    return this.activeConfig;
+  }
+
+  /**
+   * Set active configuration
+   */
+  setActiveConfig(config: any): void {
+    this.activeConfig = config;
+  }
+
+  /**
+   * Check if engine is playing
+   */
+  isPlaying(): boolean {
+    return this.transport.getState() === TransportState.PLAYING;
+  }
+
+  /**
    * Shutdown engine
    */
   async shutdown(): Promise<void> {
     this.stop();
     this.performanceMonitor.stop();
+
+    // Dispose pattern file watcher (T056)
+    if (this.patternFileWatcher) {
+      await this.patternFileWatcher.dispose();
+      this.patternFileWatcher = null;
+    }
+
+    // Dispose route file watcher
+    if (this.routeFileWatcher) {
+      await this.routeFileWatcher.dispose();
+      this.routeFileWatcher = null;
+    }
+
+    // Dispose hot-reload coordinator
+    if (this.hotReloadCoordinator) {
+      await this.hotReloadCoordinator.dispose();
+    }
+
     await this.midiIO.close();
 
     this.initialized = false;

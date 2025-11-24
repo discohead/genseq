@@ -22,8 +22,11 @@ export interface PatternExecutorConfig {
 export interface ActivePattern {
   entity: PatternEntity;
   generator: PatternGeneratorFn | null;
+  patternInstance?: any; // Store pattern instance for hot-reload (e.g., EuclideanPattern)
   enabled: boolean;
   lastTick: number;
+  pendingUpdate: boolean;
+  currentCycleStart?: number; // Tick when current cycle started
 }
 
 export class PatternExecutor extends EventEmitter {
@@ -71,6 +74,21 @@ export class PatternExecutor extends EventEmitter {
       }
 
       try {
+        // Check if we're at the start of a new cycle and have pending updates
+        const ticksPerCycle = ppq * 4 * pattern.entity.length; // PPQ * beats/bar * bars
+        const isNewCycle = pattern.currentCycleStart === undefined ||
+                          (tick - pattern.currentCycleStart) >= ticksPerCycle;
+
+        if (isNewCycle) {
+          pattern.currentCycleStart = tick;
+
+          // Apply pending updates at cycle boundary
+          if (pattern.pendingUpdate) {
+            pattern.pendingUpdate = false;
+            this.emit('patternRegenerated', { id, tick, parameters: pattern.entity.parameters });
+          }
+        }
+
         // Create context for pattern
         const context: PatternContext = {
           params: pattern.entity.parameters,
@@ -107,12 +125,15 @@ export class PatternExecutor extends EventEmitter {
   /**
    * Add or update pattern
    */
-  addPattern(entity: PatternEntity, generator: PatternGeneratorFn): void {
+  addPattern(entity: PatternEntity, generator: PatternGeneratorFn, patternInstance?: any): void {
     this.patterns.set(entity.id, {
       entity,
       generator,
+      patternInstance, // Store instance for hot-reload
       enabled: entity.enabled,
-      lastTick: 0
+      lastTick: 0,
+      pendingUpdate: false,
+      currentCycleStart: undefined
     });
 
     this.emit('patternAdded', entity.id);
@@ -150,13 +171,65 @@ export class PatternExecutor extends EventEmitter {
 
   /**
    * Update pattern parameters (hot-reload)
+   * T050: Enhanced to support live parameter updates without transport interruption
+   *
+   * @param id - Pattern ID
+   * @param parameters - Parameter updates to deep merge (includes both pattern parameters and entity fields like note/channel)
+   *
+   * Features:
+   * - Deep merges parameters without replacing entire object
+   * - Updates entity-level fields (note, channel) directly on pattern.entity
+   * - Marks pattern for reload on next cycle boundary
+   * - Calls updateConfig() on pattern instance if available
+   * - Emits 'patternUpdated' event immediately
+   * - Emits 'patternRegenerated' event at cycle boundary (in onTick)
    */
   updatePatternParameters(id: string, parameters: Record<string, any>): void {
     const pattern = this.patterns.get(id);
-    if (pattern) {
-      pattern.entity.parameters = { ...pattern.entity.parameters, ...parameters };
-      this.emit('patternUpdated', id);
+    if (!pattern) {
+      throw new Error(`Pattern ${id} not found`);
     }
+
+    // Separate entity-level fields from pattern parameters
+    const entityFields = ['note', 'channel', 'enabled', 'bus'];
+    const entityUpdates: Record<string, any> = {};
+    const parameterUpdates: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(parameters)) {
+      if (entityFields.includes(key)) {
+        entityUpdates[key] = value;
+      } else {
+        parameterUpdates[key] = value;
+      }
+    }
+
+    // Update entity-level fields directly
+    Object.assign(pattern.entity, entityUpdates);
+
+    // Handle enabled state change immediately (no cycle boundary needed for mute/unmute)
+    if ('enabled' in entityUpdates) {
+      pattern.enabled = entityUpdates.enabled;
+    }
+
+    // Deep merge parameters (preserve existing values not in update)
+    pattern.entity.parameters = {
+      ...pattern.entity.parameters,
+      ...parameterUpdates
+    };
+
+    // Update the pattern instance immediately if it has an updateConfig method
+    if (pattern.patternInstance && typeof pattern.patternInstance.updateConfig === 'function') {
+      pattern.patternInstance.updateConfig(parameters);
+    }
+
+    // Mark for reload on next cycle boundary (don't interrupt current cycle)
+    pattern.pendingUpdate = true;
+
+    // Emit immediate update event
+    this.emit('patternUpdated', {
+      id,
+      parameters: pattern.entity.parameters
+    });
   }
 
   /**
