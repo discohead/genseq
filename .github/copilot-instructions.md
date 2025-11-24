@@ -17,7 +17,7 @@ GenSeq is a file-driven algorithmic generative MIDI sequencer with VS Code integ
 
 ## Tech Stack
 
-- **Runtime**: Node.js 18 or 20 (required for `isolated-vm` compatibility)
+- **Runtime**: Node.js 20 (recommended) or 18 (required for `isolated-vm` compatibility)
 - **Package Manager**: pnpm 8+ (required - npm/yarn will not work)
 - **Build System**: Turborepo for monorepo orchestration
 - **Language**: TypeScript 5.2+ with strict mode
@@ -115,7 +115,7 @@ specs/001-midi-sequencer-engine/ # Implementation specs
 
 ## Common Gotchas
 
-1. **Node.js Version**: Use Node 18 or 20. Node 24 breaks `isolated-vm`.
+1. **Node.js Version**: Use Node 20 (recommended) or 18. Node 24 breaks `isolated-vm`.
 2. **pnpm Required**: npm/yarn will not work with this workspace setup.
 3. **Turborepo Cache**: If builds seem stale, run `pnpm clean && pnpm build`.
 4. **MIDI Testing**: Tests use virtual MIDI loopback, no hardware required.
