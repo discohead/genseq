@@ -1,0 +1,16 @@
+{
+  "id": "snare",
+  "name": "Snare Pattern",
+  "type": "euclidean",
+  "bus": "drums",
+  "enabled": false,
+  "note": 45,
+  "channel": 1,
+  "euclidean": {
+    "steps": 6,
+    "pulses": 3,
+    "rotation": 8,
+    "velocity": 127,
+    "gateLength": 12
+  }
+}

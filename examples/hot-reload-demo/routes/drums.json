@@ -1,0 +1,7 @@
+{
+  "id": "drums-route",
+  "bus": "drums",
+  "device": "IAC Driver Bus 1",
+  "channel": 2,
+  "enabled": true
+}

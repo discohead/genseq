@@ -120,12 +120,14 @@ export class EuclideanPattern {
     const { position, ppq } = context;
     const currentTick = ((position.bar - 1) * ppq * 4) + ((position.beat - 1) * ppq) + position.tick;
 
+    const velocity = this.getVelocity(step);
+
     // Note On event
     events.push({
       tick: currentTick,
       type: 'noteOn',
       note: this.config.note,
-      velocity: this.getVelocity(step)
+      velocity
     });
 
     // Calculate note-off time

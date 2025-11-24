@@ -27,6 +27,11 @@ export class Clock extends EventEmitter {
   private currentTick: number = 0;
   private intervalId: NodeJS.Timeout | null = null;
   private lastTickTime: number = 0;
+  private lastBarNumber: number = 0;
+  private lastBeatNumber: number = 0;
+  private msPerTick: number = 0;
+  private expectedNextTick: number = 0;
+  private pendingBpmChange: number | null = null;
 
   constructor(config: ClockConfig) {
     super();
@@ -55,13 +60,14 @@ export class Clock extends EventEmitter {
     this.startTime = process.hrtime.bigint();
     this.lastTickTime = performance.now();
     this.currentTick = 0;
+    this.lastBarNumber = 0;
+    this.lastBeatNumber = 0;
 
     // Calculate interval in milliseconds per tick
-    const msPerBeat = (60 * 1000) / this.bpm;
-    const msPerTick = msPerBeat / this.ppq;
+    this.updateMsPerTick();
 
     // Use precise interval timing
-    let expectedNextTick = this.lastTickTime + msPerTick;
+    this.expectedNextTick = this.lastTickTime + this.msPerTick;
 
     const tick = () => {
       if (!this.playing) {
@@ -71,19 +77,51 @@ export class Clock extends EventEmitter {
       const now = performance.now();
 
       // Emit tick if we've reached or passed the expected time
-      if (now >= expectedNextTick) {
+      if (now >= this.expectedNextTick) {
         this.emit('tick', this.currentTick);
+
+        // Check for bar and beat boundaries before incrementing tick
+        const position = this.getPosition();
+
+        // Emit bar event when we cross a bar boundary
+        if (position.bar !== this.lastBarNumber) {
+          this.lastBarNumber = position.bar;
+          this.emit('bar', position.bar);
+
+          // Apply pending BPM change at bar boundary
+          if (this.pendingBpmChange !== null) {
+            this.bpm = this.pendingBpmChange;
+            this.updateMsPerTick();
+            this.pendingBpmChange = null;
+            this.emit('bpm:changed', this.bpm);
+          }
+        }
+
+        // Emit beat event when we cross a beat boundary
+        if (position.beat !== this.lastBeatNumber) {
+          this.lastBeatNumber = position.beat;
+          this.emit('beat', position.beat);
+        }
+
         this.currentTick++;
 
-        // Calculate next expected tick time
-        expectedNextTick += msPerTick;
+        // Calculate next expected tick time (uses updated msPerTick if BPM changed)
+        this.expectedNextTick += this.msPerTick;
       }
 
       // Schedule next check with high precision
-      setTimeout(tick, Math.max(0, expectedNextTick - performance.now() - 0.5));
+      setTimeout(tick, Math.max(0, this.expectedNextTick - performance.now() - 0.5));
     };
 
     tick();
+  }
+
+  /**
+   * Calculate milliseconds per tick based on current BPM
+   */
+  private updateMsPerTick(): void {
+    const msPerBeat = (60 * 1000) / this.bpm;
+    this.msPerTick = msPerBeat / this.ppq;
   }
 
   stop(): void {
@@ -93,22 +131,28 @@ export class Clock extends EventEmitter {
       this.intervalId = null;
     }
     this.currentTick = 0;
+    this.lastBarNumber = 0;
+    this.lastBeatNumber = 0;
   }
 
+  /**
+   * Set BPM with hot-reload support
+   * If playing, schedules BPM change for next bar boundary (no transport interruption)
+   * If stopped, applies immediately
+   */
   setBpm(bpm: number): void {
     if (bpm <= 0 || bpm > 999999) {
       throw new Error(`Invalid BPM: ${bpm}`);
     }
 
-    const wasPlaying = this.playing;
-    if (wasPlaying) {
-      this.stop();
-    }
-
-    this.bpm = bpm;
-
-    if (wasPlaying) {
-      this.start();
+    if (this.playing) {
+      // Schedule BPM change for next bar boundary
+      this.pendingBpmChange = bpm;
+      this.emit('bpm:scheduled', { from: this.bpm, to: bpm, appliesAt: 'next bar boundary' });
+    } else {
+      // Apply immediately when not playing
+      this.bpm = bpm;
+      this.emit('bpm:changed', bpm);
     }
   }
 

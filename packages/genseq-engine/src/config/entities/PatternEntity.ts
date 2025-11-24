@@ -1,8 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as yaml from 'js-yaml';
 
 /**
- * T028: Pattern entity model and JSON loader
+ * T028: Pattern entity model and JSON/YAML loader
  *
  * Represents pattern configuration loaded from pattern JSON files
  */
@@ -198,7 +199,7 @@ export class PatternEntityValidator {
  */
 export class PatternEntityLoader {
   /**
-   * Load pattern configuration from JSON file
+   * Load pattern configuration from JSON or YAML file
    */
   static loadFromFile(filePath: string): PatternEntity {
     if (!fs.existsSync(filePath)) {
@@ -207,13 +208,19 @@ export class PatternEntityLoader {
 
     const ext = path.extname(filePath).toLowerCase();
 
-    if (ext !== '.json') {
-      throw new Error(`Pattern files must be in JSON format, got ${ext}`);
+    if (ext !== '.json' && ext !== '.yaml' && ext !== '.yml') {
+      throw new Error(`Pattern files must be in JSON or YAML format, got ${ext}`);
     }
 
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
-      const data = JSON.parse(content);
+      let data: any;
+
+      if (ext === '.json') {
+        data = JSON.parse(content);
+      } else {
+        data = yaml.load(content);
+      }
 
       return PatternEntityValidator.validate(data);
     } catch (error) {
@@ -232,7 +239,9 @@ export class PatternEntityLoader {
       throw new Error(`Pattern directory not found: ${dirPath}`);
     }
 
-    const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.json'));
+    const files = fs.readdirSync(dirPath).filter(f =>
+      f.endsWith('.json') || f.endsWith('.yaml') || f.endsWith('.yml')
+    );
     const patterns: PatternEntity[] = [];
 
     for (const file of files) {

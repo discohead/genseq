@@ -16,6 +16,10 @@ export { MidiIO, type MidiIOConfig, type MidiMessage, type MidiPort } from './mi
 // Configuration
 export { ConfigLoader, type ConfigLoaderConfig, type LoadOptions, type WatchOptions } from './config/ConfigLoader';
 export { SchemaValidator, type ValidationResult, type ValidationError, type SchemaValidatorConfig, type ValidationContext } from './config/SchemaValidator';
+export { ConfigurationManager, type ProjectConfig, type ConfigurationManagerOptions, type ConfigSnapshot, type ConfigDiff } from './config/ConfigurationManager';
+
+// Logging
+export { ErrorLogger, type ErrorDetail, type FormatOptions, type ParseErrorLocation } from './logging/ErrorLogger';
 
 // Sandbox
 export { ScriptSandbox, type ScriptSandboxConfig } from './sandbox/ScriptSandbox';

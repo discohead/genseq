@@ -14,6 +14,7 @@ import { EuclideanPattern, type PatternContext } from '@genseq/patterns';
 import { HotReloadCoordinator } from './config/HotReloadCoordinator';
 import { PatternFileWatcher } from './hotreload/PatternFileWatcher';
 import { RouteFileWatcher } from './hotreload/RouteFileWatcher';
+import { ClockFileWatcher } from './hotreload/ClockFileWatcher';
 import * as path from 'path';
 
 /**
@@ -64,6 +65,7 @@ export class GenSeqEngine extends EventEmitter {
   private hotReloadCoordinator?: HotReloadCoordinator;
   private patternFileWatcher: PatternFileWatcher | null = null;
   private routeFileWatcher: RouteFileWatcher | null = null;
+  private clockFileWatcher: ClockFileWatcher | null = null;
 
   // State
   private initialized: boolean = false;
@@ -363,6 +365,40 @@ export class GenSeqEngine extends EventEmitter {
         await this.routeFileWatcher.start();
       }
 
+      // Start watching clock file for hot-reload
+      if (this.hotReloadCoordinator) {
+        const clockPath = `${projectPath}/clock.yaml`;
+        this.clockFileWatcher = new ClockFileWatcher({
+          clock: this.clock,
+          clockFilePath: clockPath,
+          swapAtBarBoundary: true
+        });
+
+        // Forward lifecycle events
+        this.clockFileWatcher.on('config:swapScheduled', (event: any) => {
+          this.emit('config:swapScheduled', event);
+        });
+
+        this.clockFileWatcher.on('config:swapExecuting', () => {
+          this.emit('config:swapExecuting');
+        });
+
+        this.clockFileWatcher.on('config:reloaded', (event: any) => {
+          this.emit('config:reloaded', event);
+        });
+
+        // Forward errors
+        this.clockFileWatcher.on('config:error', (error: any) => {
+          this.emit('config:error', {
+            timestamp: Date.now(),
+            error: error.error?.message || error.message,
+            details: error.details
+          });
+        });
+
+        await this.clockFileWatcher.start();
+      }
+
       this.emit('project:loaded', { projectPath, patterns: patterns.length, routes: routes.length });
     } catch (error) {
       this.emit('error', { source: 'loadProject', error });
@@ -624,6 +660,12 @@ export class GenSeqEngine extends EventEmitter {
     if (this.routeFileWatcher) {
       await this.routeFileWatcher.dispose();
       this.routeFileWatcher = null;
+    }
+
+    // Dispose clock file watcher
+    if (this.clockFileWatcher) {
+      await this.clockFileWatcher.dispose();
+      this.clockFileWatcher = null;
     }
 
     // Dispose hot-reload coordinator

@@ -7,6 +7,7 @@ export interface PerformanceMetrics {
   memoryUsage: number; // MB
   eventQueueSize: number;
   droppedEvents: number;
+  hotReloadLatency?: number; // ms
 }
 
 /**
@@ -71,6 +72,19 @@ export class PerformanceMonitor extends EventEmitter {
         value: latencyMs,
         threshold: 5.0,
         message: `MIDI latency exceeded 5ms: ${latencyMs.toFixed(3)}ms`
+      });
+    }
+  }
+
+  recordHotReload(durationMs: number): void {
+    this.metrics.hotReloadLatency = durationMs;
+
+    if (durationMs > 50.0) {
+      this.emit('warning', {
+        type: 'hotReloadLatency',
+        value: durationMs,
+        threshold: 50.0,
+        message: `Hot-reload exceeded 50ms threshold: ${durationMs.toFixed(1)}ms`
       });
     }
   }
