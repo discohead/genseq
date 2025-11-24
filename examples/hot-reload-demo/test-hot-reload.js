@@ -127,7 +127,7 @@ async function main() {
     console.log(colors.cyan + '📝 Edit files to test hot-reload:' + colors.reset);
     console.log(colors.dim + '   • patterns/kick.json   - Change pulses, velocity, rotation, note, channel' + colors.reset);
     console.log(colors.dim + '   • patterns/snare.json  - Try different Euclidean rhythms' + colors.reset);
-    console.log(colors.dim + '   • routes/drums.json    - Change channel, transpose, velocity scaling' + colors.reset);
+    console.log(colors.dim + '   • routes/drums.json    - Change device, channel, transpose, velocity scaling' + colors.reset);
     console.log(colors.dim + '   • clock.yaml           - Change BPM to speed up/slow down' + colors.reset);
     console.log('');
     console.log(colors.cyan + '💡 Try these edits:' + colors.reset);
@@ -137,6 +137,7 @@ async function main() {
     console.log(colors.dim + '     • note: 60            - Change pitch' + colors.reset);
     console.log(colors.dim + '     • enabled: false      - Mute pattern (immediate)' + colors.reset);
     console.log(colors.dim + '   Routes:' + colors.reset);
+    console.log(colors.dim + '     • device: "output_1"  - Switch MIDI output port' + colors.reset);
     console.log(colors.dim + '     • channel: 10         - Change MIDI channel' + colors.reset);
     console.log(colors.dim + '     • transpose: 12       - Transpose up an octave' + colors.reset);
     console.log(colors.dim + '   Clock:' + colors.reset);
@@ -145,6 +146,7 @@ async function main() {
     console.log(colors.yellow + '⚠️  Try invalid configs to see error handling:' + colors.reset);
     console.log(colors.dim + '   • pulses: "invalid"   - Trigger validation error' + colors.reset);
     console.log(colors.dim + '   • bpm: -10            - Invalid BPM value' + colors.reset);
+    console.log(colors.dim + '   • device: "invalid"   - Unavailable MIDI device (fallback)' + colors.reset);
     console.log('');
     console.log(colors.magenta + '🎵 MIDI Output:' + colors.reset);
     console.log(colors.dim + '   • Virtual: IAC Driver GenSeq (virtual loopback)' + colors.reset);

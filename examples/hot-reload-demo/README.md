@@ -229,6 +229,7 @@ All fields hot-reload without stopping transport:
 ### Route Files (`routes/*.json`)
 Route configuration hot-reloads at bar boundaries:
 
+- `device` - MIDI output port (reconnects automatically)
 - `channel` - MIDI channel for the bus
 - `enabled` - Enable/disable routing
 - `transform` - Transpose, velocity scaling, channel override
@@ -236,6 +237,7 @@ Route configuration hot-reloads at bar boundaries:
 **Example:**
 ```json
 {
+  "device": "output_1",       // ✅ Hot-reloadable! Reconnects MIDI port
   "channel": 10,              // ✅ Hot-reloadable!
   "transform": {
     "transpose": 12,          // ✅ Hot-reloadable!
@@ -244,6 +246,14 @@ Route configuration hot-reloads at bar boundaries:
   }
 }
 ```
+
+**Device Reconnection:**
+When you change the `device` field, the engine:
+1. Validates the new device is available
+2. Closes the old MIDI port at bar boundary
+3. Opens the new MIDI port
+4. Routes subsequent messages to the new device
+5. Falls back to old device if new device unavailable (emits error)
 
 **Channel Hierarchy:**
 1. Pattern `channel` (most specific)
@@ -262,7 +272,6 @@ ppq: 96
 ```
 
 **❌ Not Yet Supported (Requires Engine Restart):**
-- Route `device` changes - MIDI port reconnection
 - Pattern `type` changes (e.g., `euclidean` → `probability`)
 - Clock `ppq` changes (ticks per quarter note)
 

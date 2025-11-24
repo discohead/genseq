@@ -26,6 +26,7 @@ export class RouteFileWatcher extends EventEmitter {
   private routesPath: string;
   private swapAtBarBoundary: boolean;
   private pendingUpdates: Map<string, RouteEntity> = new Map();
+  private previousDevices: Map<string, string> = new Map(); // Track previous device per route
   private updateScheduledTime: number = 0;
   private swapStartTime: number = 0;
 
@@ -41,6 +42,14 @@ export class RouteFileWatcher extends EventEmitter {
     // Set up event handlers
     this.setupFileWatcherHandlers();
     this.setupClockHandlers();
+  }
+
+  /**
+   * Initialize device tracking for a route
+   * Should be called when routes are first loaded
+   */
+  registerRoute(routeId: string, device: string): void {
+    this.previousDevices.set(routeId, device);
   }
 
   /**
@@ -102,14 +111,33 @@ export class RouteFileWatcher extends EventEmitter {
       // Load and validate route entity
       const routeEntity = RouteEntityLoader.loadFromFile(filePath);
 
+      // Detect device change
+      const previousDevice = this.previousDevices.get(routeEntity.id);
+      const deviceChanged = previousDevice !== undefined && previousDevice !== routeEntity.device;
+
       // Queue update
       this.pendingUpdates.set(routeEntity.id, routeEntity);
+
+      // Update device tracking
+      this.previousDevices.set(routeEntity.id, routeEntity.device);
 
       // Emit change detected event
       this.emit('routeFileChanged', {
         file: filePath,
-        routeId: routeEntity.id
+        routeId: routeEntity.id,
+        deviceChanged,
+        previousDevice: deviceChanged ? previousDevice : undefined,
+        newDevice: deviceChanged ? routeEntity.device : undefined
       });
+
+      // Emit device reconnection needed event if device changed
+      if (deviceChanged) {
+        this.emit('deviceReconnectNeeded', {
+          routeId: routeEntity.id,
+          oldDevice: previousDevice,
+          newDevice: routeEntity.device
+        });
+      }
 
       // Schedule swap at bar boundary
       if (this.swapAtBarBoundary && this.pendingUpdates.size === 1) {
@@ -117,6 +145,7 @@ export class RouteFileWatcher extends EventEmitter {
         this.emit('config:swapScheduled', {
           file: filePath,
           routeId: routeEntity.id,
+          deviceChanged,
           scheduledFor: 'next bar boundary'
         });
       }

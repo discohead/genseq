@@ -70,6 +70,7 @@ export class GenSeqEngine extends EventEmitter {
   // State
   private initialized: boolean = false;
   private activeConfig: any = null;
+  private initialRoutes: Map<string, string> = new Map(); // routeId -> device mapping for hot-reload tracking
 
   constructor(config: GenSeqEngineConfig = {}) {
     super();
@@ -272,6 +273,9 @@ export class GenSeqEngine extends EventEmitter {
         }
       }
 
+      // Store initial route devices for hot-reload tracking
+      this.initialRoutes = new Map(routes.map(r => [r.id, r.device]));
+
       // Load patterns
       const patternsPath = `${projectPath}/patterns`;
       const patterns = PatternEntityLoader.loadFromDirectory(patternsPath);
@@ -335,6 +339,11 @@ export class GenSeqEngine extends EventEmitter {
           swapAtBarBoundary: true
         });
 
+        // Register initial routes for device tracking
+        for (const [routeId, device] of this.initialRoutes.entries()) {
+          this.routeFileWatcher.registerRoute(routeId, device);
+        }
+
         // Forward lifecycle events
         this.routeFileWatcher.on('config:swapScheduled', (event: any) => {
           this.emit('config:swapScheduled', event);
@@ -346,6 +355,11 @@ export class GenSeqEngine extends EventEmitter {
 
         this.routeFileWatcher.on('config:reloaded', (event: any) => {
           this.emit('config:reloaded', event);
+        });
+
+        // Handle device reconnection
+        this.routeFileWatcher.on('deviceReconnectNeeded', async (event: any) => {
+          await this.handleDeviceReconnection(event.routeId, event.oldDevice, event.newDevice);
         });
 
         // Handle route updates
@@ -558,8 +572,65 @@ export class GenSeqEngine extends EventEmitter {
   }
 
   /**
+   * Handle device reconnection for route hot-reload
+   * Closes old MIDI port and opens new one
+   */
+  private async handleDeviceReconnection(routeId: string, oldDevice: string, newDevice: string): Promise<void> {
+    try {
+      // Verify new device is available
+      const availablePorts = await this.midiIO.getOutputPorts();
+      const newDeviceExists = availablePorts.some(port => port.name === newDevice || port.id === newDevice);
+
+      if (!newDeviceExists) {
+        // New device not available - emit warning and keep old device
+        this.emit('config:error', {
+          timestamp: Date.now(),
+          error: `Device "${newDevice}" not available`,
+          details: {
+            routeId,
+            oldDevice,
+            newDevice,
+            availablePorts: availablePorts.map(p => p.name)
+          }
+        });
+        return;
+      }
+
+      // Close old MIDI port
+      try {
+        await this.midiIO.closeOutputPort(oldDevice);
+      } catch (error) {
+        // Old port may already be closed - not critical
+        console.warn(`Failed to close old MIDI port "${oldDevice}":`, error);
+      }
+
+      // Open new MIDI port
+      await this.midiIO.openOutputPort(newDevice);
+
+      // Update tracking
+      this.initialRoutes.set(routeId, newDevice);
+
+      // Emit success event
+      this.emit('device:reconnected', {
+        routeId,
+        oldDevice,
+        newDevice,
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      this.emit('error', {
+        source: 'handleDeviceReconnection',
+        error,
+        routeId,
+        oldDevice,
+        newDevice
+      });
+    }
+  }
+
+  /**
    * Reload route with updated configuration
-   * Hot-reload support for route files
+   * Hot-reload support for route files (including device changes)
    */
   private reloadRoute(id: string, routeEntity: RouteEntity): void {
     try {
@@ -572,9 +643,8 @@ export class GenSeqEngine extends EventEmitter {
         route: routeEntity
       });
 
-      // Note: MIDI port reconnection not yet implemented
-      // For now, route updates only affect routing parameters (channel, transforms)
-      // Device changes require engine restart
+      // Note: Device reconnection is handled separately via deviceReconnectNeeded event
+      // This method updates routing parameters (channel, transforms)
     } catch (error) {
       this.emit('error', { source: 'reloadRoute', error, routeId: id });
     }
