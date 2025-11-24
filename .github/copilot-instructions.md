@@ -17,7 +17,7 @@ GenSeq is a file-driven algorithmic generative MIDI sequencer with VS Code integ
 
 ## Tech Stack
 
-- **Runtime**: Node.js 20 (recommended) or 18 (required for `isolated-vm` compatibility)
+- **Runtime**: Node.js 20 (recommended) or 18+ (for `isolated-vm` compatibility; Node 24+ not supported)
 - **Package Manager**: pnpm 8+ (required - npm/yarn will not work)
 - **Build System**: Turborepo for monorepo orchestration
 - **Language**: TypeScript 5.2+ with strict mode
@@ -99,8 +99,8 @@ packages/genseq-engine/src/
 ├── midi/MidiIO.ts              # MIDI I/O wrapper
 ├── config/
 │   ├── ConfigLoader.ts         # Hot-reload with chokidar
-│   └── SchemaValidator.ts      # AJV validation
-└── entities/                   # Entity models
+│   ├── SchemaValidator.ts      # AJV validation
+│   └── entities/               # Entity models
 
 packages/genseq-patterns/src/
 ├── types.ts                    # PatternContext, MidiEvent interfaces
