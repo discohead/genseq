@@ -86,6 +86,8 @@ describe('PatternFileWatcher - Type Detection', () => {
       await fs.writeFile(
         patternPath,
         `id: pattern1
+name: Pattern1
+name: Pattern 1
 type: euclidean
 bus: drums
 enabled: true
@@ -115,6 +117,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern1
+name: Pattern1
 type: probability
 bus: drums
 enabled: true
@@ -123,7 +126,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
@@ -143,6 +146,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern2
+name: Pattern2
 type: probability
 bus: drums
 enabled: true
@@ -151,7 +155,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
@@ -171,6 +175,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern2
+name: Pattern2
 type: phase
 bus: synth
 enabled: true
@@ -198,6 +203,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern3
+name: Pattern3
 type: phase
 bus: synth
 enabled: true
@@ -226,6 +232,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern3
+name: Pattern3
 type: euclidean
 bus: drums
 enabled: true
@@ -253,6 +260,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern4
+name: Pattern4
 type: euclidean
 bus: drums
 enabled: true
@@ -285,6 +293,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern4
+name: Pattern4
 type: euclidean
 bus: drums
 enabled: true
@@ -309,6 +318,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern5
+name: Pattern5
 type: probability
 bus: drums
 enabled: true
@@ -317,7 +327,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.5
-  density: 16
+  density: 0.8
 `
       );
 
@@ -337,6 +347,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern5
+name: Pattern5
 type: probability
 bus: drums
 enabled: true
@@ -345,7 +356,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 8
+  density: 0.5
 `
       );
 
@@ -380,6 +391,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern6
+name: Pattern6
 type: euclidean
 bus: drums
 enabled: true
@@ -405,6 +417,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern6
+name: Pattern6
 type: probability
 bus: drums
 enabled: true
@@ -413,7 +426,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
@@ -431,6 +444,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern7
+name: Pattern7
 type: euclidean
 bus: drums
 enabled: true
@@ -459,6 +473,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern7
+name: Pattern7
 type: probability
 bus: drums
 enabled: true
@@ -467,7 +482,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
@@ -486,6 +501,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern7
+name: Pattern7
 type: phase
 bus: synth
 enabled: true
@@ -513,6 +529,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern7
+name: Pattern7
 type: euclidean
 bus: drums
 enabled: true
@@ -542,6 +559,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern8
+name: Pattern8
 type: euclidean
 bus: drums
 enabled: true
@@ -570,6 +588,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern8
+name: Pattern8
 type: probability
 bus: drums
 enabled: true
@@ -578,7 +597,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
@@ -642,6 +661,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern10
+name: Pattern10
 type: euclidean
 bus: drums
 enabled: true
@@ -670,6 +690,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern10
+name: Pattern10
 type: probability
 bus: drums
 enabled: true
@@ -678,13 +699,14 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
       await fs.writeFile(
         patternPath,
         `id: pattern10
+name: Pattern10
 type: phase
 bus: synth
 enabled: true

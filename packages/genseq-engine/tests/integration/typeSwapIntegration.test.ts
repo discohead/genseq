@@ -30,6 +30,14 @@ describe('Type Swap Integration - End to End', () => {
     // Create directories
     await fs.mkdir(path.join(tempDir, 'patterns'), { recursive: true });
     await fs.mkdir(path.join(tempDir, 'routes'), { recursive: true });
+
+    // Create clock.yaml for all tests
+    await fs.writeFile(
+      path.join(tempDir, 'clock.yaml'),
+      `bpm: 120
+ppq: 96
+`
+    );
   });
 
   afterEach(async () => {
@@ -46,6 +54,7 @@ describe('Type Swap Integration - End to End', () => {
       await fs.writeFile(
         patternPath,
         `id: kick
+name: Kick
 type: euclidean
 bus: drums
 enabled: true
@@ -64,6 +73,7 @@ parameters:
       await fs.writeFile(
         path.join(tempDir, 'routes', 'drums.yaml'),
         `id: drums
+name: Drums
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -80,8 +90,9 @@ routesPath: ${path.join(tempDir, 'routes')}
       );
 
       // Initialize and start engine
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       let typeSwapScheduledEvent: any = null;
       let typeSwapCompleteEvent: any = null;
@@ -103,6 +114,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         patternPath,
         `id: kick
+name: Kick
 type: probability
 bus: drums
 enabled: true
@@ -111,7 +123,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
   velocity: 100
   gateLength: 0.25
 `
@@ -139,6 +151,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: hats
+name: Hats
 type: probability
 bus: drums
 enabled: true
@@ -147,7 +160,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
   velocity: 80
   gateLength: 0.1
 `
@@ -156,6 +169,7 @@ parameters:
       await fs.writeFile(
         path.join(tempDir, 'routes', 'drums.yaml'),
         `id: drums
+name: Drums
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -171,8 +185,9 @@ routesPath: ${path.join(tempDir, 'routes')}
 `
       );
 
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       let typeSwapCompleteEvent: any = null;
       engine.on('typeSwapComplete', (event) => {
@@ -186,6 +201,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         patternPath,
         `id: hats
+name: Hats
 type: phase
 bus: synth
 enabled: true
@@ -212,6 +228,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: bass
+name: Bass
 type: phase
 bus: synth
 enabled: true
@@ -229,6 +246,7 @@ parameters:
       await fs.writeFile(
         path.join(tempDir, 'routes', 'synth.yaml'),
         `id: synth
+name: Synth
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -244,8 +262,9 @@ routesPath: ${path.join(tempDir, 'routes')}
 `
       );
 
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       let typeSwapCompleteEvent: any = null;
       engine.on('typeSwapComplete', (event) => {
@@ -259,6 +278,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         patternPath,
         `id: bass
+name: Bass
 type: euclidean
 bus: drums
 enabled: true
@@ -286,6 +306,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: pattern1
+name: Pattern1
 type: euclidean
 bus: drums
 enabled: true
@@ -304,6 +325,7 @@ parameters:
       await fs.writeFile(
         path.join(tempDir, 'routes', 'drums.yaml'),
         `id: drums
+name: Drums
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -319,8 +341,9 @@ routesPath: ${path.join(tempDir, 'routes')}
 `
       );
 
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       const ticksBefore: number[] = [];
       const ticksAfter: number[] = [];
@@ -345,6 +368,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         patternPath,
         `id: pattern1
+name: Pattern1
 type: probability
 bus: drums
 enabled: true
@@ -353,7 +377,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
   velocity: 100
   gateLength: 0.25
 `
@@ -377,6 +401,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: multi
+name: Multi
 type: euclidean
 bus: drums
 enabled: true
@@ -393,6 +418,7 @@ parameters:
       await fs.writeFile(
         path.join(tempDir, 'routes', 'drums.yaml'),
         `id: drums
+name: Drums
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -408,8 +434,9 @@ routesPath: ${path.join(tempDir, 'routes')}
 `
       );
 
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       const typeSwapEvents: any[] = [];
       engine.on('typeSwapComplete', (event) => {
@@ -423,6 +450,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         patternPath,
         `id: multi
+name: Multi
 type: probability
 bus: drums
 enabled: true
@@ -431,7 +459,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
@@ -441,6 +469,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: multi
+name: Multi
 type: phase
 bus: synth
 enabled: true
@@ -459,6 +488,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: multi
+name: Multi
 type: euclidean
 bus: drums
 enabled: true
@@ -487,6 +517,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: wired
+name: Wired
 type: euclidean
 bus: drums
 enabled: true
@@ -502,6 +533,7 @@ parameters:
       await fs.writeFile(
         path.join(tempDir, 'routes', 'drums.yaml'),
         `id: drums
+name: Drums
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -517,8 +549,9 @@ routesPath: ${path.join(tempDir, 'routes')}
 `
       );
 
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       // This method doesn't exist yet - test MUST FAIL
       const handlePatternTypeChange = (engine as any).handlePatternTypeChange;
@@ -533,6 +566,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         pattern1Path,
         `id: pattern1
+name: Pattern1
 type: euclidean
 bus: drums
 enabled: true
@@ -548,6 +582,7 @@ parameters:
       await fs.writeFile(
         pattern2Path,
         `id: pattern2
+name: Pattern2
 type: probability
 bus: drums
 enabled: true
@@ -556,13 +591,14 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
       await fs.writeFile(
         path.join(tempDir, 'routes', 'drums.yaml'),
         `id: drums
+name: Drums
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -578,8 +614,9 @@ routesPath: ${path.join(tempDir, 'routes')}
 `
       );
 
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       // Verify initial types are tracked
       const initialTypes = (engine as any).initialPatternTypes;
@@ -593,6 +630,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         patternPath,
         `id: routed
+name: Routed
 type: euclidean
 bus: drums
 enabled: true
@@ -608,6 +646,7 @@ parameters:
       await fs.writeFile(
         path.join(tempDir, 'routes', 'drums.yaml'),
         `id: drums
+name: Drums
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -623,8 +662,9 @@ routesPath: ${path.join(tempDir, 'routes')}
 `
       );
 
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       let typeSwapScheduledCalled = false;
       engine.on('typeSwapScheduled', () => {
@@ -638,6 +678,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         patternPath,
         `id: routed
+name: Routed
 type: probability
 bus: drums
 enabled: true
@@ -646,7 +687,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
@@ -663,6 +704,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: perf
+name: Perf
 type: euclidean
 bus: drums
 enabled: true
@@ -678,6 +720,7 @@ parameters:
       await fs.writeFile(
         path.join(tempDir, 'routes', 'drums.yaml'),
         `id: drums
+name: Drums
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -693,8 +736,9 @@ routesPath: ${path.join(tempDir, 'routes')}
 `
       );
 
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       const swapLatencies: number[] = [];
       engine.on('typeSwapComplete', (event) => {
@@ -708,6 +752,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         patternPath,
         `id: perf
+name: Perf
 type: probability
 bus: drums
 enabled: true
@@ -716,7 +761,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
@@ -731,6 +776,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: allcombos
+name: Allcombos
 type: euclidean
 bus: drums
 enabled: true
@@ -746,6 +792,7 @@ parameters:
       await fs.writeFile(
         path.join(tempDir, 'routes', 'drums.yaml'),
         `id: drums
+name: Drums
 midiOutput: IAC Driver Bus 1
 enabled: true
 `
@@ -761,8 +808,9 @@ routesPath: ${path.join(tempDir, 'routes')}
 `
       );
 
-      engine = new GenSeqEngine({ projectPath });
+      engine = new GenSeqEngine();
       await engine.initialize();
+      await engine.loadProject(tempDir);
 
       const swapLatencies: number[] = [];
       engine.on('typeSwapComplete', (event) => {
@@ -776,6 +824,7 @@ routesPath: ${path.join(tempDir, 'routes')}
       await fs.writeFile(
         patternPath,
         `id: allcombos
+name: Allcombos
 type: probability
 bus: drums
 enabled: true
@@ -784,7 +833,7 @@ division: 16
 channel: 10
 parameters:
   probability: 0.75
-  density: 16
+  density: 0.8
 `
       );
 
@@ -794,6 +843,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: allcombos
+name: Allcombos
 type: phase
 bus: synth
 enabled: true
@@ -812,6 +862,7 @@ parameters:
       await fs.writeFile(
         patternPath,
         `id: allcombos
+name: Allcombos
 type: euclidean
 bus: drums
 enabled: true

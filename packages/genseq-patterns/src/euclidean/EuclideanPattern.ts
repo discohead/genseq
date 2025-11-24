@@ -24,8 +24,113 @@ export class EuclideanPattern {
   private currentStep: number = 0;
 
   constructor(config: EuclideanPatternConfig) {
+    this.validateConfig(config);
     this.config = config;
     this.pattern = this.generatePattern();
+  }
+
+  /**
+   * Validate configuration parameters (T039)
+   */
+  private validateConfig(config: EuclideanPatternConfig): void {
+    // Validate steps
+    if (config.steps === undefined || config.steps === null) {
+      throw new Error('Required parameter "steps" is missing');
+    }
+    if (typeof config.steps !== 'number') {
+      throw new Error(`Steps must be a number, got ${typeof config.steps}`);
+    }
+    if (!Number.isInteger(config.steps)) {
+      throw new Error(`Steps must be an integer, got ${config.steps}`);
+    }
+    if (config.steps <= 0) {
+      throw new Error(`Steps must be greater than 0, got ${config.steps}`);
+    }
+
+    // Validate pulses
+    if (config.pulses === undefined || config.pulses === null) {
+      throw new Error('Required parameter "pulses" is missing');
+    }
+    if (typeof config.pulses !== 'number') {
+      throw new Error(`Pulses must be a number, got ${typeof config.pulses}`);
+    }
+    if (!Number.isInteger(config.pulses)) {
+      throw new Error(`Pulses must be an integer, got ${config.pulses}`);
+    }
+    if (config.pulses < 0) {
+      throw new Error(`Pulses must be non-negative, got ${config.pulses}`);
+    }
+    if (config.pulses > config.steps) {
+      throw new Error(
+        `Pulses cannot exceed steps (pulses=${config.pulses}, steps=${config.steps})`
+      );
+    }
+
+    // Validate rotation
+    if (config.rotation === undefined || config.rotation === null) {
+      throw new Error('Required parameter "rotation" is missing');
+    }
+    if (typeof config.rotation !== 'number') {
+      throw new Error(`Rotation must be a number, got ${typeof config.rotation}`);
+    }
+    if (!Number.isInteger(config.rotation)) {
+      throw new Error(`Rotation must be an integer, got ${config.rotation}`);
+    }
+    if (config.rotation < 0) {
+      throw new Error(
+        `Rotation must be non-negative, got ${config.rotation}`
+      );
+    }
+
+    // Validate note
+    if (config.note === undefined || config.note === null) {
+      throw new Error('Required parameter "note" is missing');
+    }
+    if (typeof config.note !== 'number') {
+      throw new Error(`Note must be a number, got ${typeof config.note}`);
+    }
+    if (config.note < 0 || config.note > 127) {
+      throw new Error(
+        `Note must be between 0 and 127, got ${config.note}`
+      );
+    }
+
+    // Validate velocity
+    if (config.velocity === undefined || config.velocity === null) {
+      throw new Error('Required parameter "velocity" is missing');
+    }
+    if (typeof config.velocity !== 'number' && !Array.isArray(config.velocity)) {
+      throw new Error(`Velocity must be a number or array, got ${typeof config.velocity}`);
+    }
+    if (typeof config.velocity === 'number') {
+      if (config.velocity < 0 || config.velocity > 127) {
+        throw new Error(
+          `Velocity must be between 0 and 127, got ${config.velocity}`
+        );
+      }
+    } else if (Array.isArray(config.velocity)) {
+      for (let i = 0; i < config.velocity.length; i++) {
+        const vel = config.velocity[i];
+        if (typeof vel !== 'number' || vel < 0 || vel > 127) {
+          throw new Error(
+            `Velocity array item ${i} must be between 0 and 127, got ${vel}`
+          );
+        }
+      }
+    }
+
+    // Validate duration
+    if (config.duration === undefined || config.duration === null) {
+      throw new Error('Required parameter "duration" is missing');
+    }
+    if (typeof config.duration !== 'number') {
+      throw new Error(`Duration must be a number, got ${typeof config.duration}`);
+    }
+    if (config.duration <= 0) {
+      throw new Error(
+        `Duration must be greater than 0, got ${config.duration}`
+      );
+    }
   }
 
   /**
@@ -33,10 +138,6 @@ export class EuclideanPattern {
    */
   private generatePattern(): boolean[] {
     const { steps, pulses } = this.config;
-
-    if (steps <= 0 || pulses < 0 || pulses > steps) {
-      throw new Error(`Invalid Euclidean parameters: steps=${steps}, pulses=${pulses}`);
-    }
 
     const pattern: boolean[] = new Array(steps).fill(false);
 
@@ -166,6 +267,14 @@ export class EuclideanPattern {
    */
   reset(): void {
     this.currentStep = 0;
+  }
+
+  /**
+   * T053: Cleanup resources (lifecycle consistency)
+   */
+  destroy(): void {
+    // No resources to clean up for euclidean pattern
+    // But method is required for consistent lifecycle API
   }
 }
 

@@ -181,6 +181,10 @@ export class Clock extends EventEmitter {
     return this.playing;
   }
 
+  getCurrentTick(): number {
+    return this.currentTick;
+  }
+
   /**
    * Manual tick advance for testing
    * Emits tick, bar, and beat events as appropriate

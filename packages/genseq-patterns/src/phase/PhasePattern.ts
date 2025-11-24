@@ -30,17 +30,88 @@ export class PhasePattern {
   }
 
   /**
-   * Validate configuration parameters
+   * Validate configuration parameters (T040)
    */
   private validateConfig(config: PhasePatternConfig): void {
+    // Validate phaseRate
+    if (config.phaseRate === undefined || config.phaseRate === null) {
+      throw new Error('Required parameter "phaseRate" is missing');
+    }
+    if (typeof config.phaseRate !== 'number') {
+      throw new Error(`PhaseRate must be a number, got ${typeof config.phaseRate}`);
+    }
     if (config.phaseRate < 0) {
-      throw new Error(`Invalid phaseRate: ${config.phaseRate}. Must be >= 0`);
+      throw new Error(`PhaseRate must be >= 0, got ${config.phaseRate}`);
     }
 
+    // Validate phaseOffset
+    if (config.phaseOffset === undefined || config.phaseOffset === null) {
+      throw new Error('Required parameter "phaseOffset" is missing');
+    }
+    if (typeof config.phaseOffset !== 'number') {
+      throw new Error(`PhaseOffset must be a number, got ${typeof config.phaseOffset}`);
+    }
     if (config.phaseOffset < 0 || config.phaseOffset > 1) {
       throw new Error(
-        `Invalid phaseOffset: ${config.phaseOffset}. Must be between 0.0 and 1.0`
+        `PhaseOffset must be between 0 and 1, got ${config.phaseOffset}`
       );
+    }
+
+    // Validate note
+    if (config.note === undefined || config.note === null) {
+      throw new Error('Required parameter "note" is missing');
+    }
+    if (typeof config.note !== 'number') {
+      throw new Error(`Note must be a number, got ${typeof config.note}`);
+    }
+    if (config.note < 0 || config.note > 127) {
+      throw new Error(
+        `Note must be between 0 and 127, got ${config.note}`
+      );
+    }
+
+    // Validate velocity
+    if (config.velocity === undefined || config.velocity === null) {
+      throw new Error('Required parameter "velocity" is missing');
+    }
+    if (typeof config.velocity !== 'number' && !Array.isArray(config.velocity)) {
+      throw new Error(`Velocity must be a number or array, got ${typeof config.velocity}`);
+    }
+    if (typeof config.velocity === 'number') {
+      if (config.velocity < 0 || config.velocity > 127) {
+        throw new Error(
+          `Velocity must be between 0 and 127, got ${config.velocity}`
+        );
+      }
+    } else if (Array.isArray(config.velocity)) {
+      for (let i = 0; i < config.velocity.length; i++) {
+        const vel = config.velocity[i];
+        if (typeof vel !== 'number' || vel < 0 || vel > 127) {
+          throw new Error(
+            `Velocity array item ${i} must be between 0 and 127, got ${vel}`
+          );
+        }
+      }
+    }
+
+    // Validate duration
+    if (config.duration === undefined || config.duration === null) {
+      throw new Error('Required parameter "duration" is missing');
+    }
+    if (typeof config.duration !== 'number') {
+      throw new Error(`Duration must be a number, got ${typeof config.duration}`);
+    }
+    if (config.duration <= 0) {
+      throw new Error(
+        `Duration must be greater than 0, got ${config.duration}`
+      );
+    }
+
+    // Validate optional velocityModulation
+    if (config.velocityModulation !== undefined && config.velocityModulation !== null) {
+      if (typeof config.velocityModulation !== 'boolean') {
+        throw new Error(`VelocityModulation must be a boolean, got ${typeof config.velocityModulation}`);
+      }
     }
   }
 

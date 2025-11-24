@@ -26,6 +26,29 @@ import phaseSchema from '../../../../schemas/patterns/phase.schema.json';
  *
  * This factory enables type swapping by abstracting pattern creation logic
  * that was previously embedded in GenSeqEngine.
+ *
+ * ## T065: Parameter Classification
+ *
+ * **Common Parameters** (shared across all pattern types):
+ * - note: MIDI note number (0-127), default: 60
+ * - velocity: MIDI velocity (1-127 or array), default: 100
+ * - duration: Note duration in beats (0.01-16), default: 0.25
+ *
+ * **Type-Specific Parameters**:
+ * - Euclidean: steps, pulses, rotation
+ * - Probability: probability, density, seed (optional), velocityModulation (optional)
+ * - Phase: phaseRate, phaseOffset, velocityModulation (optional)
+ *
+ * ## T066: Parameter Handling During Type Changes
+ *
+ * PatternFactory uses ALL parameters from the provided entity.
+ * No automatic preservation of parameters from previous pattern types.
+ * If common parameters are omitted, schema defaults are applied.
+ *
+ * Examples:
+ * - euclidean → probability with note=64 → uses note=64 (from new entity)
+ * - euclidean → probability without note → uses note=60 (schema default)
+ * - Old pattern's parameters are NOT automatically preserved
  */
 
 export interface PatternCreationResult {
@@ -33,9 +56,14 @@ export interface PatternCreationResult {
   generator: PatternGeneratorFn;
 }
 
+export interface ValidationError {
+  path: string;
+  message: string;
+}
+
 export interface ValidationResult {
   valid: boolean;
-  errors: string[];
+  errors: ValidationError[];
 }
 
 type PatternType = 'euclidean' | 'probability' | 'phase' | 'script';
@@ -48,7 +76,7 @@ export class PatternFactory {
    * @returns Pattern instance and generator function
    * @throws Error if pattern type is unknown or parameters are invalid
    */
-  createPattern(entity: PatternEntity): PatternCreationResult {
+  static createPattern(entity: PatternEntity): PatternCreationResult {
     // Validate pattern type
     if (!this.isValidPatternType(entity.type)) {
       throw new Error(
@@ -59,8 +87,9 @@ export class PatternFactory {
     // Validate parameters before creation
     const validation = this.validateParameters(entity.type, entity.parameters);
     if (!validation.valid) {
+      const errorMessages = validation.errors.map(e => e.message).join(', ');
       throw new Error(
-        `Invalid parameters for ${entity.type} pattern: ${validation.errors.join(', ')}`
+        `Invalid parameters for ${entity.type} pattern: ${errorMessages}`
       );
     }
 
@@ -90,37 +119,58 @@ export class PatternFactory {
   }
 
   /**
-   * T015: Validate parameters for specific pattern type
+   * T015/T041/T042: Validate parameters for specific pattern type
    *
-   * Performs type-specific validation using JSON schemas and constructor logic.
+   * Performs type-specific validation by calling pattern constructors.
+   * Returns detailed error messages with parameter paths.
    *
    * @param type - Pattern type
    * @param parameters - Parameter object to validate
-   * @returns Validation result with errors if invalid
+   * @returns Validation result with structured errors
    */
-  validateParameters(type: PatternType, parameters: Record<string, any>): ValidationResult {
-    const errors: string[] = [];
+  static validateParameters(type: PatternType, parameters: Record<string, any>): ValidationResult {
+    const errors: ValidationError[] = [];
 
     try {
+      // Create a temporary entity for validation
+      const tempEntity = {
+        id: 'validation-temp',
+        type,
+        enabled: true,
+        bus: 'main',
+        channel: 1,
+        length: 1,
+        parameters
+      } as PatternEntity;
+
+      // Attempt to create instance - this will throw if parameters are invalid
       switch (type) {
         case 'euclidean':
-          this.validateEuclideanParameters(parameters, errors);
+          this.createEuclideanInstance(tempEntity);
           break;
         case 'probability':
-          this.validateProbabilityParameters(parameters, errors);
+          this.createProbabilityInstance(tempEntity);
           break;
         case 'phase':
-          this.validatePhaseParameters(parameters, errors);
+          this.createPhaseInstance(tempEntity);
           break;
         case 'script':
-          // Script validation would check file existence
-          errors.push('Script pattern validation not yet implemented');
+          errors.push({
+            path: '/parameters',
+            message: 'Script pattern validation not yet implemented'
+          });
           break;
         default:
-          errors.push(`Unknown pattern type: ${type}`);
+          errors.push({
+            path: '/type',
+            message: `Unknown pattern type: ${type}`
+          });
       }
     } catch (error) {
-      errors.push((error as Error).message);
+      errors.push({
+        path: '/parameters',
+        message: (error as Error).message
+      });
     }
 
     return {
@@ -138,7 +188,7 @@ export class PatternFactory {
    * @returns JSON schema object
    * @throws Error if pattern type is unknown
    */
-  getParameterSchema(type: PatternType): Record<string, any> {
+  static getParameterSchema(type: PatternType): Record<string, any> {
     switch (type) {
       case 'euclidean':
         // Extract euclidean properties from main pattern schema
@@ -162,7 +212,7 @@ export class PatternFactory {
    * @param instance - Pattern instance
    * @returns Generator function that calls instance.tick()
    */
-  createGenerator(
+  static createGenerator(
     instance: EuclideanPattern | ProbabilityPattern | PhasePattern
   ): PatternGeneratorFn {
     return (context: PatternContext) => {
@@ -172,54 +222,66 @@ export class PatternFactory {
 
   // Private helper methods
 
-  private isValidPatternType(type: string): type is PatternType {
+  private static isValidPatternType(type: string): type is PatternType {
     return ['euclidean', 'probability', 'phase', 'script'].includes(type);
   }
 
-  private createEuclideanInstance(entity: PatternEntity): EuclideanPattern {
+  /**
+   * T069-T070: Create euclidean instance with schema defaults
+   */
+  private static createEuclideanInstance(entity: PatternEntity): EuclideanPattern {
     const params = entity.parameters as any;
     const config: EuclideanPatternConfig = {
       steps: params.steps,
       pulses: params.pulses,
-      rotation: params.rotation ?? 0,
-      note: (entity as any).note ?? params.note ?? 60,
-      velocity: params.velocity ?? 100,
-      duration: params.gateLength ?? params.duration ?? 0.25
+      rotation: params.rotation ?? 0, // Schema default
+      // T069: Apply schema defaults for common parameters
+      note: params.note ?? 60, // Schema default
+      velocity: params.velocity ?? 100, // Schema default
+      duration: params.duration ?? 0.25 // Schema default
     };
 
     return new EuclideanPattern(config);
   }
 
-  private createProbabilityInstance(entity: PatternEntity): ProbabilityPattern {
+  /**
+   * T069-T070: Create probability instance with schema defaults
+   */
+  private static createProbabilityInstance(entity: PatternEntity): ProbabilityPattern {
     const params = entity.parameters as any;
     const config: ProbabilityPatternConfig = {
       probability: params.probability,
-      density: params.density,
-      note: (entity as any).note ?? params.note ?? 60,
-      velocity: params.velocity ?? 100,
-      duration: params.gateLength ?? params.duration ?? 0.25,
+      density: params.density ?? 16, // Schema default
+      // T069: Apply schema defaults for common parameters
+      note: params.note ?? 60, // Schema default
+      velocity: params.velocity ?? 100, // Schema default
+      duration: params.duration ?? 0.25, // Schema default
       seed: params.seed,
-      velocityModulation: params.velocityModulation ?? false
+      velocityModulation: params.velocityModulation ?? false // Schema default
     };
 
     return new ProbabilityPattern(config);
   }
 
-  private createPhaseInstance(entity: PatternEntity): PhasePattern {
+  /**
+   * T069-T070: Create phase instance with schema defaults
+   */
+  private static createPhaseInstance(entity: PatternEntity): PhasePattern {
     const params = entity.parameters as any;
     const config: PhasePatternConfig = {
-      phaseRate: params.phaseRate,
-      phaseOffset: params.phaseOffset,
-      note: (entity as any).note ?? params.note ?? 60,
-      velocity: params.velocity ?? 100,
-      duration: params.gateLength ?? params.duration ?? 0.25,
-      velocityModulation: params.velocityModulation ?? false
+      phaseRate: params.phaseRate ?? 1.0, // Schema default
+      phaseOffset: params.phaseOffset ?? 0.0, // Schema default
+      // T070: Apply schema defaults for common parameters
+      note: params.note ?? 60, // Schema default
+      velocity: params.velocity ?? 100, // Schema default
+      duration: params.duration ?? 0.25, // Schema default
+      velocityModulation: params.velocityModulation ?? false // Schema default
     };
 
     return new PhasePattern(config);
   }
 
-  private validateEuclideanParameters(
+  private static validateEuclideanParameters(
     params: Record<string, any>,
     errors: string[]
   ): void {
@@ -274,7 +336,7 @@ export class PatternFactory {
     }
   }
 
-  private validateProbabilityParameters(
+  private static validateProbabilityParameters(
     params: Record<string, any>,
     errors: string[]
   ): void {
@@ -317,7 +379,7 @@ export class PatternFactory {
     }
   }
 
-  private validatePhaseParameters(
+  private static validatePhaseParameters(
     params: Record<string, any>,
     errors: string[]
   ): void {

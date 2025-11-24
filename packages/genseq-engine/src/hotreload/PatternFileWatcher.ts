@@ -27,6 +27,8 @@ export class PatternFileWatcher extends EventEmitter {
   private pendingUpdates: Map<string, PatternEntity> = new Map();
   private updateScheduledTime: number = 0;
   private swapStartTime: number = 0;
+  // T023: Track initial pattern types for type change detection
+  private previousTypes: Map<string, string> = new Map();
 
   constructor(options: PatternFileWatcherOptions) {
     super();
@@ -68,6 +70,21 @@ export class PatternFileWatcher extends EventEmitter {
   }
 
   /**
+   * T024: Register pattern and track its initial type
+   * Used by GenSeqEngine during project load to establish baseline for type change detection
+   */
+  registerPattern(patternId: string, type: string): void {
+    this.previousTypes.set(patternId, type);
+  }
+
+  /**
+   * Get tracked pattern type (for testing)
+   */
+  getPatternType(patternId: string): string | undefined {
+    return this.previousTypes.get(patternId);
+  }
+
+  /**
    * Set up file watcher event handlers
    */
   private setupFileWatcherHandlers(): void {
@@ -91,6 +108,7 @@ export class PatternFileWatcher extends EventEmitter {
 
   /**
    * Handle pattern file changes
+   * T025: Modified to detect type changes and emit typeChangeDetected event
    */
   private async handlePatternFileChange(filePath: string): Promise<void> {
     try {
@@ -104,19 +122,60 @@ export class PatternFileWatcher extends EventEmitter {
       // Load updated pattern
       const pattern = PatternEntityLoader.loadFromFile(filePath);
 
+      // T025-T026: Detect type changes
+      const previousType = this.previousTypes.get(pattern.id);
+      const currentType = pattern.type;
+
+      if (previousType !== undefined && previousType !== currentType) {
+        // Type change detected - emit special event
+        this.emit('typeChangeDetected', {
+          patternId: pattern.id,
+          fromType: previousType,
+          toType: currentType,
+          filePath
+        });
+
+        // Update tracked type
+        this.previousTypes.set(pattern.id, currentType);
+
+        // Queue the pattern entity for type swap (don't return early)
+        // The typeChangeDetected event handler will route to scheduleTypeSwap
+        this.pendingUpdates.set(pattern.id, pattern);
+        return;
+      }
+
+      // Regular parameter update (no type change)
       this.emit('configChanging', { file: filePath });
 
       // Queue update
       this.pendingUpdates.set(pattern.id, pattern);
 
       this.emit('swapScheduled', { file: filePath, patternId: pattern.id });
+      this.emit('patternUpdated', { id: pattern.id, pattern });
 
       // If not waiting for bar boundary, apply immediately
       if (!this.swapAtBarBoundary) {
         this.applyPendingUpdates();
       }
     } catch (error) {
-      this.emit('error', error);
+      // T047: Distinguish validation errors from other errors
+      const errorMessage = (error as Error).message;
+
+      // Check if this is a validation error from PatternFactory
+      if (errorMessage.includes('Invalid parameters for') ||
+          errorMessage.includes('Unknown pattern type') ||
+          errorMessage.includes('Required parameter') ||
+          errorMessage.includes('must be')) {
+        // Validation error - emit specific config:error event
+        this.emit('config:error', {
+          filePath,
+          error: errorMessage,
+          timestamp: Date.now()
+        });
+      } else {
+        // Other errors (file I/O, parsing, etc.)
+        this.emit('error', error);
+      }
     }
   }
 

@@ -37,6 +37,8 @@ A musician wants to edit pattern parameters in VS Code (rotation, density, veloc
 2. **Given** the engine has loaded a scene with 3 active patterns, **When** user edits one pattern's velocity parameter, **Then** only that pattern's sound changes while the other two continue unchanged
 3. **Given** the user saves an invalid pattern file (malformed JSON), **When** the engine detects the change, **Then** the engine rejects the update, logs a clear error with file/line number, displays diagnostic in VS Code, and continues playing the last valid configuration
 
+**Related Feature**: [Pattern Type Hot-Reload](../002-pattern-type-hotreload/spec.md) - Supports live pattern type changes (euclidean ↔ probability ↔ phase) during playback with <5ms swap latency at bar boundaries.
+
 ---
 
 ### User Story 3 - Gestural MIDI Input Control (Priority: P3)
