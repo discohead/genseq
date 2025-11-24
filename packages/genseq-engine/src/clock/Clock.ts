@@ -180,4 +180,30 @@ export class Clock extends EventEmitter {
   isPlaying(): boolean {
     return this.playing;
   }
+
+  /**
+   * Manual tick advance for testing
+   * Emits tick, bar, and beat events as appropriate
+   */
+  tick(): void {
+    const position = this.getPosition();
+
+    // Emit bar event when crossing bar boundary
+    if (position.bar !== this.lastBarNumber) {
+      this.lastBarNumber = position.bar;
+      this.emit('bar', position.bar);
+    }
+
+    // Emit beat event when crossing beat boundary
+    if (position.beat !== this.lastBeatNumber) {
+      this.lastBeatNumber = position.beat;
+      this.emit('beat', position.beat);
+    }
+
+    // Emit tick event
+    this.emit('tick', this.currentTick);
+
+    // Increment tick counter
+    this.currentTick++;
+  }
 }

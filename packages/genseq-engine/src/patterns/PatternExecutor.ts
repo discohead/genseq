@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import type { Clock } from '../clock/Clock';
 import type { PatternEntity } from '../config/entities/PatternEntity';
 import type { PatternContext, PatternGeneratorFn } from '@genseq/patterns';
+import { PatternFactory } from './PatternFactory';
 
 /**
  * T030: PatternExecutor - connects scheduler to pattern generators
@@ -27,16 +28,23 @@ export interface ActivePattern {
   lastTick: number;
   pendingUpdate: boolean;
   currentCycleStart?: number; // Tick when current cycle started
+  // T018: Type swap state fields
+  pendingTypeSwap?: boolean; // Whether a type swap is scheduled
+  targetType?: string; // Target pattern type for swap
+  targetEntity?: PatternEntity; // Target entity configuration
+  swapScheduledAt?: number; // Timestamp when swap was scheduled
 }
 
 export class PatternExecutor extends EventEmitter {
   private clock: Clock;
   private patterns: Map<string, ActivePattern> = new Map();
   private tickListener: ((tick: number) => void) | null = null;
+  private patternFactory: PatternFactory;
 
   constructor(config: PatternExecutorConfig) {
     super();
     this.clock = config.clock;
+    this.patternFactory = new PatternFactory();
   }
 
   /**
@@ -63,6 +71,7 @@ export class PatternExecutor extends EventEmitter {
 
   /**
    * Handle clock tick - generate events from all active patterns
+   * T022: Modified to detect cycle boundaries and apply pending type swaps
    */
   private onTick(tick: number): void {
     const position = this.clock.getPosition();
@@ -82,7 +91,12 @@ export class PatternExecutor extends EventEmitter {
         if (isNewCycle) {
           pattern.currentCycleStart = tick;
 
-          // Apply pending updates at cycle boundary
+          // T022: Apply pending type swaps at cycle boundary BEFORE parameter updates
+          if (pattern.pendingTypeSwap) {
+            this.applyTypeSwap(id, pattern);
+          }
+
+          // Apply pending parameter updates at cycle boundary
           if (pattern.pendingUpdate) {
             pattern.pendingUpdate = false;
             this.emit('patternRegenerated', { id, tick, parameters: pattern.entity.parameters });
@@ -104,6 +118,11 @@ export class PatternExecutor extends EventEmitter {
 
         // Generate events from pattern
         const events = pattern.generator(context);
+
+        // Ensure events is an array
+        if (!events || !Array.isArray(events)) {
+          continue;
+        }
 
         // Emit events with pattern metadata
         for (const event of events) {
@@ -133,7 +152,12 @@ export class PatternExecutor extends EventEmitter {
       enabled: entity.enabled,
       lastTick: 0,
       pendingUpdate: false,
-      currentCycleStart: undefined
+      currentCycleStart: undefined,
+      // T018: Initialize type swap fields
+      pendingTypeSwap: false,
+      targetType: undefined,
+      targetEntity: undefined,
+      swapScheduledAt: undefined
     });
 
     this.emit('patternAdded', entity.id);
@@ -234,9 +258,20 @@ export class PatternExecutor extends EventEmitter {
 
   /**
    * Get pattern by ID
+   * Returns a merged object with both PatternEntity and ActivePattern fields for testing
    */
-  getPattern(id: string): PatternEntity | undefined {
-    return this.patterns.get(id)?.entity;
+  getPattern(id: string): any {
+    const active = this.patterns.get(id);
+    if (!active) {
+      return undefined;
+    }
+
+    // Return object with both ActivePattern fields and flattened PatternEntity fields
+    return {
+      ...active.entity,
+      ...active,
+      entity: active.entity
+    };
   }
 
   /**
@@ -259,6 +294,128 @@ export class PatternExecutor extends EventEmitter {
   clearAll(): void {
     this.patterns.clear();
     this.emit('patternsCleared');
+  }
+
+  /**
+   * T019: Schedule type swap for next cycle boundary
+   *
+   * Queues a pattern type change to be applied at the next cycle boundary.
+   * Does not interrupt current playback.
+   *
+   * @param id - Pattern ID
+   * @param targetEntity - New pattern entity with different type
+   * @throws Error if pattern not found
+   */
+  scheduleTypeSwap(id: string, targetEntity: PatternEntity): void {
+    const pattern = this.patterns.get(id);
+    if (!pattern) {
+      throw new Error(`Pattern ${id} not found`);
+    }
+
+    const fromType = pattern.entity.type;
+    const toType = targetEntity.type;
+
+    // Store type swap request
+    pattern.pendingTypeSwap = true;
+    pattern.targetType = toType;
+    pattern.targetEntity = targetEntity;
+    pattern.swapScheduledAt = performance.now();
+
+    // Emit scheduled event
+    this.emit('typeSwapScheduled', {
+      patternId: id,
+      fromType,
+      toType,
+      scheduledAt: pattern.swapScheduledAt
+    });
+  }
+
+  /**
+   * T020: Apply type swap at cycle boundary
+   *
+   * Creates new pattern instance of target type and swaps generator atomically.
+   * Called automatically by onTick() when cycle boundary is detected.
+   *
+   * @param id - Pattern ID
+   * @param pattern - Active pattern with pending type swap
+   */
+  private applyTypeSwap(id: string, pattern: ActivePattern): void {
+    if (!pattern.targetEntity) {
+      this.rollbackTypeSwap(id, pattern, new Error('Missing target entity'));
+      return;
+    }
+
+    const swapStartTime = performance.now();
+    const fromType = pattern.entity.type;
+    const toType = pattern.targetEntity.type;
+
+    try {
+      // Create new pattern instance using factory
+      const result = this.patternFactory.createPattern(pattern.targetEntity);
+
+      // Atomically swap instance and generator
+      const oldInstance = pattern.patternInstance;
+      pattern.patternInstance = result.instance;
+      pattern.generator = result.generator;
+      pattern.entity = pattern.targetEntity;
+
+      // Call destroy on old instance if available
+      if (oldInstance && typeof oldInstance.destroy === 'function') {
+        oldInstance.destroy();
+      }
+
+      // Clear type swap flags
+      pattern.pendingTypeSwap = false;
+      pattern.targetType = undefined;
+      pattern.targetEntity = undefined;
+      const scheduledAt = pattern.swapScheduledAt;
+      pattern.swapScheduledAt = undefined;
+
+      // Calculate swap latency
+      const latency = performance.now() - swapStartTime;
+
+      // Emit success event
+      this.emit('typeSwapComplete', {
+        patternId: id,
+        fromType,
+        toType,
+        completedAt: performance.now(),
+        latency
+      });
+
+    } catch (error) {
+      this.rollbackTypeSwap(id, pattern, error as Error);
+    }
+  }
+
+  /**
+   * T021: Rollback type swap on failure
+   *
+   * Preserves original pattern instance and clears type swap flags.
+   * Ensures playback continues uninterrupted with original pattern.
+   *
+   * @param id - Pattern ID
+   * @param pattern - Active pattern
+   * @param error - Error that caused rollback
+   */
+  private rollbackTypeSwap(id: string, pattern: ActivePattern, error: Error): void {
+    const fromType = pattern.entity.type;
+    const toType = pattern.targetType;
+
+    // Clear type swap flags but preserve original pattern
+    pattern.pendingTypeSwap = false;
+    pattern.targetType = undefined;
+    pattern.targetEntity = undefined;
+    pattern.swapScheduledAt = undefined;
+
+    // Emit failure event
+    this.emit('typeSwapFailed', {
+      patternId: id,
+      fromType,
+      toType,
+      error,
+      failedAt: performance.now()
+    });
   }
 
   // Helper implementations for pattern context
