@@ -67,9 +67,19 @@ async function main() {
     // Event listeners for hot-reload lifecycle
     engine.on('config:swapScheduled', (event) => {
       const fileName = path.basename(event.file);
-      const patternId = event.patternId || 'unknown';
+      const patternId = event.patternId;
+      const routeId = event.routes?.[0];
+      const bpmChange = event.from && event.to ? `${event.from} → ${event.to} BPM` : null;
+
       log('🔄', colors.blue, `Hot-reload scheduled for next bar`, `(${fileName})`);
-      console.log(colors.dim + `   Pattern: ${patternId}` + colors.reset);
+
+      if (patternId) {
+        console.log(colors.dim + `   Pattern: ${patternId}` + colors.reset);
+      } else if (routeId) {
+        console.log(colors.dim + `   Route: ${routeId}` + colors.reset);
+      } else if (bpmChange) {
+        console.log(colors.dim + `   Tempo: ${bpmChange}` + colors.reset);
+      }
     });
 
     engine.on('config:swapExecuting', () => {
@@ -114,17 +124,27 @@ async function main() {
     console.log(colors.bright + '  HOT-RELOAD DEMO RUNNING' + colors.reset);
     console.log(colors.bright + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' + colors.reset + '\n');
 
-    console.log(colors.cyan + '📝 Edit pattern files to test hot-reload:' + colors.reset);
-    console.log(colors.dim + '   • patterns/kick.yaml   - Change pulses, velocity, or rotation' + colors.reset);
-    console.log(colors.dim + '   • patterns/snare.yaml  - Try different Euclidean rhythms' + colors.reset);
+    console.log(colors.cyan + '📝 Edit files to test hot-reload:' + colors.reset);
+    console.log(colors.dim + '   • patterns/kick.json   - Change pulses, velocity, rotation, note, channel' + colors.reset);
+    console.log(colors.dim + '   • patterns/snare.json  - Try different Euclidean rhythms' + colors.reset);
+    console.log(colors.dim + '   • routes/drums.json    - Change channel, transpose, velocity scaling' + colors.reset);
+    console.log(colors.dim + '   • clock.yaml           - Change BPM to speed up/slow down' + colors.reset);
     console.log('');
     console.log(colors.cyan + '💡 Try these edits:' + colors.reset);
-    console.log(colors.dim + '   • pulses: 8           - Increase rhythm density' + colors.reset);
-    console.log(colors.dim + '   • velocity: 120       - Louder hits' + colors.reset);
-    console.log(colors.dim + '   • rotation: 4         - Phase shift pattern' + colors.reset);
+    console.log(colors.dim + '   Patterns:' + colors.reset);
+    console.log(colors.dim + '     • pulses: 8           - Increase rhythm density' + colors.reset);
+    console.log(colors.dim + '     • velocity: 120       - Louder hits' + colors.reset);
+    console.log(colors.dim + '     • note: 60            - Change pitch' + colors.reset);
+    console.log(colors.dim + '     • enabled: false      - Mute pattern (immediate)' + colors.reset);
+    console.log(colors.dim + '   Routes:' + colors.reset);
+    console.log(colors.dim + '     • channel: 10         - Change MIDI channel' + colors.reset);
+    console.log(colors.dim + '     • transpose: 12       - Transpose up an octave' + colors.reset);
+    console.log(colors.dim + '   Clock:' + colors.reset);
+    console.log(colors.dim + '     • bpm: 140            - Increase tempo' + colors.reset);
     console.log('');
     console.log(colors.yellow + '⚠️  Try invalid configs to see error handling:' + colors.reset);
     console.log(colors.dim + '   • pulses: "invalid"   - Trigger validation error' + colors.reset);
+    console.log(colors.dim + '   • bpm: -10            - Invalid BPM value' + colors.reset);
     console.log('');
     console.log(colors.magenta + '🎵 MIDI Output:' + colors.reset);
     console.log(colors.dim + '   • Virtual: IAC Driver GenSeq (virtual loopback)' + colors.reset);

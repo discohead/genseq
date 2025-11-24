@@ -250,10 +250,21 @@ Route configuration hot-reloads at bar boundaries:
 2. Route `channel` (bus default)
 3. Transform `channelOverride` (explicit override)
 
+### Clock File (`clock.yaml`)
+BPM changes hot-reload at bar boundaries:
+
+- `bpm` - Tempo changes without transport interruption
+
+**Example:**
+```yaml
+bpm: 140  # ✅ Hot-reloadable! Changes at bar boundary
+ppq: 96
+```
+
 **❌ Not Yet Supported (Requires Engine Restart):**
-- Clock configuration (`clock.yaml`) - BPM changes
 - Route `device` changes - MIDI port reconnection
 - Pattern `type` changes (e.g., `euclidean` → `probability`)
+- Clock `ppq` changes (ticks per quarter note)
 
 These features are planned for future phases.
 
@@ -285,11 +296,12 @@ These features are planned for future phases.
 
 After exploring hot-reload, try these capabilities:
 
+- **Tempo changes** - Edit `bpm` in `clock.yaml` to speed up or slow down playback
 - **Pattern muting** - Toggle `enabled: false` to mute/unmute patterns instantly
 - **Channel changes** - Change pattern or route `channel` to redirect MIDI output
 - **Note changes** - Edit `note` field to transpose individual patterns
 - **Route transforms** - Apply `transpose`, `velocityScale`, or `channelOverride` in routes
-- **Simultaneous edits** - Edit multiple pattern/route files and watch them batch at bar boundaries
+- **Simultaneous edits** - Edit multiple pattern/route/clock files and watch them batch at bar boundaries
 - **Error recovery** - Introduce validation errors, fix them, and see recovery without restart
 
 ## Technical Details
