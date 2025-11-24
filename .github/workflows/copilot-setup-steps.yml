@@ -1,0 +1,63 @@
+# GitHub Copilot Agent Setup Steps
+# This workflow prepares the environment for GitHub Copilot coding agent
+# to work effectively with the GenSeq monorepo.
+
+name: Copilot Setup Steps
+
+# Required: setup-steps workflows run when Copilot agent starts a task
+on: [copilot_setup_steps]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Step 2: Setup Node.js (use Node 20 for isolated-vm compatibility)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Step 3: Install pnpm (required package manager)
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      # Step 4: Get pnpm store directory for caching
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      # Step 5: Cache pnpm dependencies
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # Step 6: Cache Turborepo build artifacts
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.json') }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      # Step 7: Install dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Step 8: Build all packages
+      - name: Build packages
+        run: pnpm build
