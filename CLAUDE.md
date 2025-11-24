@@ -184,3 +184,10 @@ This project follows the GitHub Spec Kit workflow:
 - **tasks.md**: Atomic implementation tasks with parallelization markers [P]
 
 All design documents are in `specs/001-midi-sequencer-engine/`.
+
+## Active Technologies
+- Node.js 18+, TypeScript 5+ + @genseq/engine, @genseq/patterns, chokidar (file watching), ajv (JSON Schema validation) (002-pattern-type-hotreload)
+- JSON/YAML configuration files (file-driven architecture) (002-pattern-type-hotreload)
+
+## Recent Changes
+- 002-pattern-type-hotreload: Added Node.js 18+, TypeScript 5+ + @genseq/engine, @genseq/patterns, chokidar (file watching), ajv (JSON Schema validation)

@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://genseq.dev/schemas/patterns/phase.schema.json",
+  "title": "Phase Pattern Configuration",
+  "description": "Configuration for phase-based pattern generation with continuous accumulation",
+  "type": "object",
+  "required": ["phaseRate", "phaseOffset", "note", "velocity", "duration"],
+  "properties": {
+    "phaseRate": {
+      "type": "number",
+      "description": "Cycles per bar (0.5 = half speed, 1.0 = once per bar, 2.0 = double speed)",
+      "minimum": 0.0,
+      "maximum": 16.0,
+      "default": 1.0
+    },
+    "phaseOffset": {
+      "type": "number",
+      "description": "Phase offset (0.0 - 1.0)",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 0.0
+    },
+    "note": {
+      "type": "integer",
+      "description": "MIDI note number",
+      "minimum": 0,
+      "maximum": 127,
+      "default": 60
+    },
+    "velocity": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "description": "Fixed MIDI velocity",
+          "minimum": 1,
+          "maximum": 127,
+          "default": 100
+        },
+        {
+          "type": "array",
+          "description": "Array of velocities for variation",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 127
+          },
+          "minItems": 1,
+          "maxItems": 64
+        }
+      ]
+    },
+    "duration": {
+      "type": "number",
+      "description": "Note duration in beats",
+      "minimum": 0.01,
+      "maximum": 16,
+      "default": 0.25
+    },
+    "velocityModulation": {
+      "type": "boolean",
+      "description": "Modulate velocity based on phase position",
+      "default": false
+    }
+  }
+}

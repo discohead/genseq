@@ -1,0 +1,191 @@
+openapi: 3.0.0
+info:
+  title: Type Swap Events API
+  version: 1.0.0
+  description: Event schemas for pattern type hot-reload lifecycle
+
+paths: {}
+
+components:
+  schemas:
+    TypeSwapEvent:
+      type: object
+      required:
+        - patternId
+        - oldType
+        - newType
+        - timestamp
+        - status
+      properties:
+        patternId:
+          type: string
+          description: ID of pattern undergoing type swap
+          example: "kick-pattern-1"
+        oldType:
+          $ref: '#/components/schemas/PatternType'
+        newType:
+          $ref: '#/components/schemas/PatternType'
+        timestamp:
+          type: string
+          format: bigint
+          description: High-resolution timestamp (nanoseconds since epoch)
+          example: "1700000000000000000"
+        status:
+          $ref: '#/components/schemas/TypeSwapStatus'
+        error:
+          type: string
+          description: Error message if status is 'failed'
+          example: "Invalid probability value: must be between 0 and 1"
+
+    PatternType:
+      type: string
+      enum:
+        - euclidean
+        - probability
+        - phase
+        - script
+
+    TypeSwapStatus:
+      type: string
+      enum:
+        - detected
+        - scheduled
+        - complete
+        - failed
+      description: |
+        Type swap lifecycle status:
+        - detected: Type change detected in configuration file
+        - scheduled: Swap queued for next cycle boundary
+        - complete: Swap successfully executed
+        - failed: Swap failed and rolled back
+
+    TypeChangeDetectedEvent:
+      type: object
+      required:
+        - eventType
+        - patternId
+        - file
+        - oldType
+        - newType
+        - timestamp
+      properties:
+        eventType:
+          type: string
+          enum: [typeChangeDetected]
+        patternId:
+          type: string
+        file:
+          type: string
+          description: Path to configuration file that changed
+        oldType:
+          $ref: '#/components/schemas/PatternType'
+        newType:
+          $ref: '#/components/schemas/PatternType'
+        timestamp:
+          type: string
+          format: bigint
+
+    TypeSwapScheduledEvent:
+      type: object
+      required:
+        - eventType
+        - patternId
+        - targetType
+        - scheduledFor
+        - timestamp
+      properties:
+        eventType:
+          type: string
+          enum: [typeSwapScheduled]
+        patternId:
+          type: string
+        targetType:
+          $ref: '#/components/schemas/PatternType'
+        scheduledFor:
+          type: string
+          description: Next cycle boundary timing
+          example: "bar:5,beat:1"
+        timestamp:
+          type: string
+          format: bigint
+
+    TypeSwapCompleteEvent:
+      type: object
+      required:
+        - eventType
+        - patternId
+        - oldType
+        - newType
+        - duration
+        - timestamp
+      properties:
+        eventType:
+          type: string
+          enum: [typeSwapComplete]
+        patternId:
+          type: string
+        oldType:
+          $ref: '#/components/schemas/PatternType'
+        newType:
+          $ref: '#/components/schemas/PatternType'
+        duration:
+          type: number
+          description: Swap duration in milliseconds
+          example: 12.5
+        timestamp:
+          type: string
+          format: bigint
+
+    TypeSwapFailedEvent:
+      type: object
+      required:
+        - eventType
+        - patternId
+        - oldType
+        - attemptedType
+        - error
+        - timestamp
+      properties:
+        eventType:
+          type: string
+          enum: [typeSwapFailed]
+        patternId:
+          type: string
+        oldType:
+          $ref: '#/components/schemas/PatternType'
+        attemptedType:
+          $ref: '#/components/schemas/PatternType'
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - CREATION_ERROR
+                - RESOURCE_ERROR
+                - TIMEOUT_ERROR
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+        timestamp:
+          type: string
+          format: bigint
+
+    EventStream:
+      type: object
+      description: WebSocket event stream for real-time monitoring
+      properties:
+        events:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/TypeChangeDetectedEvent'
+              - $ref: '#/components/schemas/TypeSwapScheduledEvent'
+              - $ref: '#/components/schemas/TypeSwapCompleteEvent'
+              - $ref: '#/components/schemas/TypeSwapFailedEvent'
