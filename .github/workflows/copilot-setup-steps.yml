@@ -35,10 +35,9 @@ jobs:
           node-version: '20'
 
       # Step 3: Install pnpm (required package manager)
+      # Version is read from package.json "packageManager" field
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 8
 
       # Step 4: Get pnpm store directory for caching
       - name: Get pnpm store directory
