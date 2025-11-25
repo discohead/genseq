@@ -1,0 +1,7 @@
+{
+  "id": "main-route",
+  "bus": "main",
+  "device": "IAC Driver Bus 1",
+  "channel": 1,
+  "enabled": true
+}

@@ -71,6 +71,8 @@ export class GenSeqEngine extends EventEmitter {
   private initialized: boolean = false;
   private activeConfig: any = null;
   private initialRoutes: Map<string, string> = new Map(); // routeId -> device mapping for hot-reload tracking
+  // T028: Track initial pattern types for type change detection
+  private initialPatternTypes: Map<string, string> = new Map(); // patternId -> type mapping
 
   constructor(config: GenSeqEngineConfig = {}) {
     super();
@@ -168,6 +170,27 @@ export class GenSeqEngine extends EventEmitter {
     // Forward pattern regeneration events (T056)
     this.patternExecutor.on('patternRegenerated', (data) => {
       this.emit('pattern:regenerated', data);
+    });
+
+    // T035: Forward type swap lifecycle events from PatternExecutor
+    this.patternExecutor.on('typeSwapScheduled', (event) => {
+      this.emit('typeSwapScheduled', event);
+      console.log(`Type swap scheduled: ${event.patternId} (${event.fromType} → ${event.toType}) at ${event.scheduledAt.toFixed(2)}ms`);
+    });
+
+    this.patternExecutor.on('typeSwapCompleted', (event) => {
+      this.emit('pattern:typeSwapCompleted', event);
+      console.log(`Type swap complete: ${event.patternId} (${event.fromType} → ${event.toType}) in ${event.latency.toFixed(2)}ms`);
+    });
+
+    this.patternExecutor.on('typeSwapFailed', (event) => {
+      this.emit('typeSwapFailed', event);
+      console.error(`Type swap failed: ${event.patternId} (${event.fromType || 'unknown'} → ${event.toType || 'unknown'}) - ${event.error.message} [rollback confirmed]`);
+    });
+
+    this.patternExecutor.on('typeSwapReplaced', (event) => {
+      this.emit('typeSwapReplaced', event);
+      console.log(`Type swap replaced: ${event.patternId} (${event.replacedType} → ${event.newType}) [deduplication]`);
     });
 
     // Forward MIDI events
@@ -281,6 +304,8 @@ export class GenSeqEngine extends EventEmitter {
       const patterns = PatternEntityLoader.loadFromDirectory(patternsPath);
 
       for (const pattern of patterns) {
+        // T028: Track initial pattern types
+        this.initialPatternTypes.set(pattern.id, pattern.type);
         this.loadPattern(pattern);
       }
 
@@ -291,6 +316,11 @@ export class GenSeqEngine extends EventEmitter {
           patternsPath,
           swapAtBarBoundary: true
         });
+
+        // T029: Register initial pattern types with watcher
+        for (const [patternId, type] of this.initialPatternTypes.entries()) {
+          this.patternFileWatcher.registerPattern(patternId, type);
+        }
 
         // Forward lifecycle events
         this.patternFileWatcher.on('configChanging', (event: any) => {
@@ -313,13 +343,32 @@ export class GenSeqEngine extends EventEmitter {
           });
         });
 
+        // T029: Handle type change events - route to type swap instead of reload
+        this.patternFileWatcher.on('typeChangeDetected', (event: any) => {
+          console.log(`Type change detected: ${event.patternId} (${event.fromType} → ${event.toType}) in ${event.filePath}`);
+          this.handlePatternTypeChange(event);
+        });
+
         // Handle pattern updates
         this.patternFileWatcher.on('patternUpdated', (event: any) => {
           this.reloadPattern(event.id, event.pattern);
         });
 
-        // Forward errors
+        // T048: Forward validation errors (config:error events)
+        this.patternFileWatcher.on('config:error', (error: any) => {
+          console.error(`[GenSeqEngine] Pattern validation error: ${error.error}`);
+          console.error(`  File: ${error.filePath}`);
+          this.emit('config:error', {
+            timestamp: error.timestamp,
+            error: error.error,
+            filePath: error.filePath,
+            details: error
+          });
+        });
+
+        // Forward other errors (file I/O, parsing, etc.)
         this.patternFileWatcher.on('error', (error: Error) => {
+          console.error(`[GenSeqEngine] Pattern file error: ${error.message}`);
           this.emit('config:error', {
             timestamp: Date.now(),
             error: error.message,
@@ -527,6 +576,28 @@ export class GenSeqEngine extends EventEmitter {
   }
 
   /**
+   * T030: Handle pattern type change
+   * Routes type changes to PatternExecutor.scheduleTypeSwap() instead of parameter reload
+   */
+  private handlePatternTypeChange(event: any): void {
+    try {
+      const { patternId, toType, filePath } = event;
+
+      // Load full pattern entity from file
+      const patternEntity = PatternEntityLoader.loadFromFile(filePath);
+
+      // Update tracked type
+      this.initialPatternTypes.set(patternId, toType);
+
+      // Route to type swap instead of parameter reload
+      this.patternExecutor.scheduleTypeSwap(patternId, patternEntity);
+
+    } catch (error) {
+      this.emit('error', { source: 'handlePatternTypeChange', error, event });
+    }
+  }
+
+  /**
    * Reload pattern with updated parameters (T056)
    */
   private reloadPattern(id: string, patternEntity: PatternEntity): void {
@@ -711,6 +782,13 @@ export class GenSeqEngine extends EventEmitter {
    */
   isPlaying(): boolean {
     return this.transport.getState() === TransportState.PLAYING;
+  }
+
+  /**
+   * Alias for isPlaying() - used by tests
+   */
+  isRunning(): boolean {
+    return this.isPlaying();
   }
 
   /**

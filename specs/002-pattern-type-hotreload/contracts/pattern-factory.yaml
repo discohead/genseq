@@ -1,0 +1,185 @@
+openapi: 3.0.0
+info:
+  title: PatternFactory API
+  version: 1.0.0
+  description: Centralized pattern instance creation and validation
+
+paths:
+  /createPattern:
+    post:
+      summary: Create a new pattern instance from entity configuration
+      operationId: createPattern
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatternEntity'
+      responses:
+        '200':
+          description: Pattern instance created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatternInstance'
+        '400':
+          description: Invalid pattern configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /validateParameters:
+    post:
+      summary: Validate parameters for a specific pattern type
+      operationId: validateParameters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - parameters
+              properties:
+                type:
+                  $ref: '#/components/schemas/PatternType'
+                parameters:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+
+  /getParameterSchema:
+    get:
+      summary: Get JSON schema for a pattern type
+      operationId: getParameterSchema
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/PatternType'
+      responses:
+        '200':
+          description: JSON schema for pattern type
+          content:
+            application/json:
+              schema:
+                type: object
+                description: JSON Schema object
+        '404':
+          description: Pattern type not found
+
+components:
+  schemas:
+    PatternType:
+      type: string
+      enum:
+        - euclidean
+        - probability
+        - phase
+        - script
+      description: Supported pattern generator types
+
+    PatternEntity:
+      type: object
+      required:
+        - id
+        - type
+        - enabled
+        - bus
+        - channel
+        - length
+        - parameters
+      properties:
+        id:
+          type: string
+          description: Unique pattern identifier
+        type:
+          $ref: '#/components/schemas/PatternType'
+        enabled:
+          type: boolean
+          description: Whether pattern is active
+        bus:
+          type: string
+          description: Output bus routing
+        channel:
+          type: integer
+          minimum: 1
+          maximum: 16
+          description: MIDI channel
+        length:
+          type: number
+          minimum: 0.25
+          maximum: 32
+          description: Pattern length in bars
+        parameters:
+          type: object
+          description: Type-specific parameters
+          additionalProperties: true
+
+    PatternInstance:
+      type: object
+      description: Pattern instance reference (not serializable)
+      properties:
+        type:
+          type: string
+          description: Instance type identifier
+        methods:
+          type: array
+          items:
+            type: string
+          description: Available methods on instance
+          example:
+            - tick
+            - updateConfig
+            - reset
+            - destroy
+
+    ValidationResult:
+      type: object
+      required:
+        - valid
+      properties:
+        valid:
+          type: boolean
+          description: Whether parameters are valid
+        errors:
+          type: array
+          items:
+            type: object
+            required:
+              - path
+              - message
+            properties:
+              path:
+                type: string
+                description: JSON path to invalid field
+                example: "/parameters/probability"
+              message:
+                type: string
+                description: Human-readable error message
+                example: "must be between 0 and 1"
+
+    ValidationError:
+      type: object
+      required:
+        - error
+        - details
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "INVALID_PARAMETERS"
+        details:
+          type: string
+          description: Detailed error message
+        validation:
+          $ref: '#/components/schemas/ValidationResult'

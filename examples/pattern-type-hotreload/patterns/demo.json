@@ -1,0 +1,14 @@
+{
+  "id": "demo",
+  "type": "euclidean",
+  "bus": "main",
+  "enabled": true,
+  "euclidean": {
+    "steps": 16,
+    "pulses": 5,
+    "rotation": 0,
+    "note": 60,
+    "velocity": 100,
+    "duration": 0.25
+  }
+}
