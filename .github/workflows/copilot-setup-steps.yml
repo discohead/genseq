@@ -2,14 +2,24 @@
 # This workflow prepares the environment for GitHub Copilot coding agent
 # to work effectively with the GenSeq monorepo.
 
-name: Copilot Setup Steps
+name: "Copilot Setup Steps"
 
-# Required: setup-steps workflows run when Copilot agent starts a task
-on: [copilot_setup_steps]
+# Triggers for testing the workflow and for Copilot agent execution
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
 
 jobs:
-  setup:
+  # The job MUST be named 'copilot-setup-steps' for the Copilot agent
+  copilot-setup-steps:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       # Step 1: Checkout the repository
@@ -25,10 +35,9 @@ jobs:
           node-version: '20'
 
       # Step 3: Install pnpm (required package manager)
+      # Version is read from package.json "packageManager" field
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 8
 
       # Step 4: Get pnpm store directory for caching
       - name: Get pnpm store directory
