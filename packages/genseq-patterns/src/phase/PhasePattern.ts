@@ -225,18 +225,8 @@ export class PhasePattern {
     const newConfig = { ...this.config, ...config };
     this.validateConfig(newConfig);
 
-    // Store old phase rate to preserve timing
-    const oldConfig = this.config;
     this.config = newConfig;
-
-    // If phase rate or offset changed, we need to recalculate but preserve relative position
-    if (config.phaseRate !== undefined || config.phaseOffset !== undefined) {
-      // Keep current phase position if only offset changed
-      if (config.phaseRate === undefined) {
-        this.currentPhase = this.currentPhase;
-      }
-      // Otherwise phase will be recalculated on next tick
-    }
+    // Phase will be recalculated on next tick based on new config
   }
 
   /**

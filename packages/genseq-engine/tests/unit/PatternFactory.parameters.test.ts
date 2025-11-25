@@ -26,8 +26,8 @@ import type { PatternType } from '@genseq/patterns';
 describe('PatternFactory Parameter Preservation', () => {
   describe('Common Parameters', () => {
     it('should use note from new entity when specified', () => {
-      // Original euclidean with note=60
-      const euclideanEntity: PatternEntity = {
+      // Original euclidean with note=60 (for documentation - shows "before" state)
+      const _euclideanEntity: PatternEntity = {
         id: 'pattern1',
         type: 'euclidean' as PatternType,
         enabled: true,
@@ -68,7 +68,8 @@ describe('PatternFactory Parameter Preservation', () => {
     });
 
     it('should use velocity from new entity when specified', () => {
-      const euclideanEntity: PatternEntity = {
+      // Original euclidean (for documentation - shows "before" state)
+      const _euclideanEntity: PatternEntity = {
         id: 'pattern1',
         type: 'euclidean' as PatternType,
         enabled: true,
@@ -107,7 +108,8 @@ describe('PatternFactory Parameter Preservation', () => {
     });
 
     it('should use duration from new entity when specified', () => {
-      const euclideanEntity: PatternEntity = {
+      // Original euclidean (for documentation - shows "before" state)
+      const _euclideanEntity: PatternEntity = {
         id: 'pattern1',
         type: 'euclidean' as PatternType,
         enabled: true,
@@ -148,7 +150,8 @@ describe('PatternFactory Parameter Preservation', () => {
 
   describe('Type-Specific Parameters', () => {
     it('should replace euclidean-specific parameters with probability-specific parameters', () => {
-      const euclideanEntity: PatternEntity = {
+      // Original euclidean (for documentation - shows "before" state with type-specific params)
+      const _euclideanEntity: PatternEntity = {
         id: 'pattern1',
         type: 'euclidean' as PatternType,
         enabled: true,
@@ -194,7 +197,8 @@ describe('PatternFactory Parameter Preservation', () => {
     });
 
     it('should replace probability-specific parameters with phase-specific parameters', () => {
-      const probabilityEntity: PatternEntity = {
+      // Original probability (for documentation - shows "before" state with type-specific params)
+      const _probabilityEntity: PatternEntity = {
         id: 'pattern1',
         type: 'probability' as PatternType,
         enabled: true,
@@ -240,7 +244,8 @@ describe('PatternFactory Parameter Preservation', () => {
     });
 
     it('should replace phase-specific parameters with euclidean-specific parameters', () => {
-      const phaseEntity: PatternEntity = {
+      // Original phase (for documentation - shows "before" state with type-specific params)
+      const _phaseEntity: PatternEntity = {
         id: 'pattern1',
         type: 'phase' as PatternType,
         enabled: true,
@@ -363,7 +368,8 @@ describe('PatternFactory Parameter Preservation', () => {
       // It simply creates a pattern from the entity provided
       // Parameter preservation would have to be done BEFORE calling createPattern()
 
-      const euclideanEntity: PatternEntity = {
+      // Original euclidean with custom values (for documentation - shows what would NOT be preserved)
+      const _euclideanEntity: PatternEntity = {
         id: 'pattern1',
         type: 'euclidean' as PatternType,
         enabled: true,

@@ -387,7 +387,6 @@ export class PatternExecutor extends EventEmitter {
       pattern.pendingTypeSwap = false;
       pattern.targetType = undefined;
       pattern.targetEntity = undefined;
-      const scheduledAt = pattern.swapScheduledAt;
       pattern.swapScheduledAt = undefined;
 
       // Calculate swap latency
