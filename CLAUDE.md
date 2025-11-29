@@ -14,6 +14,8 @@ GenSeq is a file-driven algorithmic generative MIDI sequencer with VS Code integ
   - Clock: `process.hrtime.bigint()` for sub-millisecond precision
   - Scheduler: Tick-based event scheduling with lookahead window
   - MidiIO: `@julusian/midi` bindings for cross-platform MIDI I/O
+  - MidiInputHandler: Bidirectional MIDI with CC/note/pitchbend routing
+  - MappingRouter: MIDI input → pattern parameter routing with macros
   - ConfigLoader: `chokidar` file watching with <50ms hot-reload
   - SchemaValidator: `ajv` JSON Schema validation with file/line error precision
 
@@ -93,9 +95,17 @@ Tests will fail if these are not met:
 packages/genseq-engine/src/
 ├── clock/Clock.ts              # High-res timing (hrtime.bigint)
 ├── scheduler/Scheduler.ts      # Event queue with lookahead
-├── midi/MidiIO.ts              # @julusian/midi wrapper
+├── midi/
+│   ├── MidiIO.ts               # @julusian/midi wrapper (output)
+│   └── MidiInputHandler.ts     # MIDI input with CC/note/pitchbend
+├── mappings/
+│   ├── MappingRouter.ts        # MIDI input → parameter routing
+│   ├── MacroExpander.ts        # One-to-many parameter control
+│   ├── InputTransformer.ts     # Value scaling/curves/smoothing
+│   └── QuantizedTrigger.ts     # Bar/beat-quantized triggers
 ├── config/
 │   ├── ConfigLoader.ts         # Hot-reload with chokidar
+│   ├── entities/               # MappingEntity, MacroEntity loaders
 │   └── SchemaValidator.ts      # AJV validation
 ├── sandbox/ScriptSandbox.ts    # isolated-vm (Node 18/20 only)
 └── monitoring/PerformanceMonitor.ts
@@ -107,7 +117,7 @@ packages/genseq-patterns/src/
 └── euclidean/EuclideanPattern.ts
 
 schemas/                        # JSON Schema files for validation
-examples/                       # Example projects
+examples/live-performance/      # Full example with MIDI controller mappings
 specs/001-midi-sequencer-engine/ # Implementation plan & tasks
 ```
 
@@ -175,6 +185,55 @@ specs/001-midi-sequencer-engine/ # Implementation plan & tasks
 - Type-specific parameters cleanly replaced
 - No automatic preservation from old type
 
+## MIDI Input Control (US3)
+
+**Status**: ✅ COMPLETE
+
+**Capability**: Real-time MIDI controller input (faders, knobs, buttons) controls pattern parameters during playback. Supports direct parameter mapping, macros (one-to-many), and scene triggers.
+
+**Key Implementation Files**:
+- `MidiInputHandler.ts` - MIDI input device management, CC/note/pitchbend parsing
+- `MappingRouter.ts` - Routes MIDI events to targets based on mapping configs
+- `MacroExpander.ts` - Expands macro targets with wildcard pattern matching
+- `InputTransformer.ts` - Value transformation (linear/exponential/logarithmic curves, smoothing, dead zones)
+- `MappingEntity.ts` - Mapping config loader with field normalization
+- `MacroEntity.ts` - Macro config loader with `scaling: {min, max}` → `scale/offset/clamp` conversion
+
+**Mapping Target Types**:
+1. **parameter** - Direct pattern parameter control (e.g., CC1 → kick.velocity)
+2. **macro** - One-to-many control (e.g., CC2 → master-density affects all patterns)
+3. **scene** - Scene triggers with bar/beat quantization
+
+**Transform Options**:
+- `type`: linear, exponential, logarithmic
+- `inputRange/outputRange`: Value mapping (e.g., [0,127] → [0,1])
+- `curve`: Exponent for non-linear curves
+- `smoothing`: Low-pass filter in milliseconds
+- `deadZone/deadZoneEnd`: Ignore values near min/max
+- `quantize`: Snap to discrete steps
+
+**Macro Features**:
+- Wildcard patterns: `*`, `drum-*`, `*-kick`
+- Per-target: `scale`, `offset`, `clamp: {min, max}`
+- Shorthand: `scaling: {min, max}` auto-converts to scale/offset/clamp
+- Priority ordering for target execution
+
+**Parameter Name Handling**:
+- Macro targets use dotted names: `euclidean.velocity`
+- PatternExecutor strips type prefix when matching: `euclidean.velocity` → `velocity`
+- Enables type-agnostic macro definitions
+
+**Events**:
+- `midi:input` - Raw MIDI input received
+- `parameter-change` - Parameter update routed to pattern
+- `macro-expanded` - Macro expanded to multiple targets
+- `scene-trigger` - Scene trigger with quantization
+
+**Example Project**: `examples/live-performance/`
+- Grid controller mappings for faders/knobs/buttons
+- Macros for master velocity and density control
+- Scene triggers quantized to bar boundaries
+
 ## Key Technical Details
 
 ### Timing System
@@ -213,6 +272,10 @@ specs/001-midi-sequencer-engine/ # Implementation plan & tasks
 
 5. **pnpm Required**: This project uses pnpm workspaces. `npm` or `yarn` will not work correctly.
 
+6. **Parameter Names in Macros**: Use dotted names like `euclidean.velocity` in macro targets. PatternExecutor auto-strips the type prefix when the pattern type matches. This enables type-agnostic macros.
+
+7. **Macro Scaling Shorthand**: Use `scaling: {min, max}` instead of calculating `scale/offset/clamp` manually. MacroEntityLoader converts it automatically using formula: `output = min + (input * (max - min))`.
+
 ## Spec-Driven Development
 
 This project follows the GitHub Spec Kit workflow:
@@ -229,4 +292,5 @@ All design documents are in `specs/001-midi-sequencer-engine/`.
 - JSON/YAML configuration files (file-driven architecture) (002-pattern-type-hotreload)
 
 ## Recent Changes
+- MIDI Input Control (US3): Complete bidirectional MIDI with mappings, macros, transforms, and scene triggers
 - 002-pattern-type-hotreload: Added Node.js 18+, TypeScript 5+ + @genseq/engine, @genseq/patterns, chokidar (file watching), ajv (JSON Schema validation)
