@@ -1,0 +1,13 @@
+{
+  "id": "pad36-to-main",
+  "source": {
+    "type": "note",
+    "channel": 10,
+    "note": 36
+  },
+  "target": {
+    "type": "scene",
+    "sceneId": "main"
+  },
+  "quantize": "bar"
+}

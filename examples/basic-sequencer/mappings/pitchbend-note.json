@@ -1,0 +1,19 @@
+{
+  "id": "pitchbend-to-bass-note",
+  "source": {
+    "type": "pitchbend",
+    "channel": 1
+  },
+  "target": {
+    "type": "parameter",
+    "patternId": "bass",
+    "parameter": "note"
+  },
+  "transform": {
+    "type": "exponential",
+    "inputRange": [-8192, 8191],
+    "outputRange": [36, 84],
+    "curve": 2.0,
+    "smoothing": 50
+  }
+}

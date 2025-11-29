@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schemas/pattern.schema.json",
+  "id": "snare",
+  "name": "Snare Pattern",
+  "type": "euclidean",
+  "bus": "drums",
+  "enabled": true,
+  "note": 38,
+  "channel": 1,
+  "euclidean": {
+    "steps": 16,
+    "pulses": 2,
+    "rotation": 4,
+    "velocity": 110,
+    "gateLength": 18
+  }
+}

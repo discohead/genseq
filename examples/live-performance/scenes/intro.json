@@ -1,0 +1,29 @@
+{
+  "$schema": "../../schemas/scene.schema.json",
+  "id": "intro",
+  "name": "Intro Scene",
+  "description": "Minimal patterns - kick and hats only",
+  "activePatterns": ["kick", "hats"],
+  "patternOverrides": {
+    "kick": {
+      "euclidean": {
+        "pulses": 2,
+        "velocity": 90
+      }
+    },
+    "hats": {
+      "euclidean": {
+        "pulses": 4,
+        "velocity": 70
+      }
+    }
+  },
+  "macros": {
+    "master-density": 0.3,
+    "master-velocity": 0.6
+  },
+  "transition": {
+    "type": "queued",
+    "quantize": "bar"
+  }
+}

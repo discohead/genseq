@@ -1,0 +1,31 @@
+{
+  "$schema": "../../schemas/scene.schema.json",
+  "id": "breakdown",
+  "name": "Breakdown Scene",
+  "description": "Reduced patterns - hats and bass only with sparse hits",
+  "activePatterns": ["hats", "bass"],
+  "patternOverrides": {
+    "hats": {
+      "euclidean": {
+        "pulses": 3,
+        "velocity": 65,
+        "rotation": 2
+      }
+    },
+    "bass": {
+      "euclidean": {
+        "pulses": 2,
+        "velocity": 80,
+        "rotation": 4
+      }
+    }
+  },
+  "macros": {
+    "master-density": 0.4,
+    "master-velocity": 0.5
+  },
+  "transition": {
+    "type": "queued",
+    "quantize": "bar"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schemas/pattern.schema.json",
+  "id": "bass",
+  "name": "Bass Pattern",
+  "type": "euclidean",
+  "bus": "synth",
+  "enabled": true,
+  "note": 36,
+  "channel": 2,
+  "euclidean": {
+    "steps": 16,
+    "pulses": 5,
+    "rotation": 2,
+    "velocity": 90,
+    "gateLength": 48
+  }
+}

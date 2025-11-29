@@ -1,0 +1,41 @@
+{
+  "$schema": "../../schemas/macro.schema.json",
+  "id": "master-density",
+  "name": "Master Density",
+  "description": "Controls the density/pulse count of all euclidean patterns simultaneously",
+  "defaultValue": 1.0,
+  "targets": [
+    {
+      "patternId": "kick",
+      "parameter": "euclidean.pulses",
+      "scaling": {
+        "min": 1,
+        "max": 4
+      }
+    },
+    {
+      "patternId": "hats",
+      "parameter": "euclidean.pulses",
+      "scaling": {
+        "min": 2,
+        "max": 8
+      }
+    },
+    {
+      "patternId": "snare",
+      "parameter": "euclidean.pulses",
+      "scaling": {
+        "min": 1,
+        "max": 4
+      }
+    },
+    {
+      "patternId": "bass",
+      "parameter": "euclidean.pulses",
+      "scaling": {
+        "min": 2,
+        "max": 8
+      }
+    }
+  ]
+}

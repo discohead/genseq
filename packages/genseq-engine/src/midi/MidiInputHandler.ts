@@ -99,6 +99,7 @@ export class MidiInputHandler extends EventEmitter {
     input.openPort(device.port);
 
     input.on('message', (deltaTime: number, message: number[]) => {
+      console.log(`[MidiInputHandler] Raw MIDI from "${deviceName}": [${message.map(b => b.toString(16).padStart(2, '0')).join(' ')}] (delta: ${deltaTime.toFixed(3)}ms)`);
       this.handleMessage(deviceName, message);
     });
 
@@ -138,6 +139,13 @@ export class MidiInputHandler extends EventEmitter {
       input.closePort();
     }
     this.inputPorts.clear();
+  }
+
+  /**
+   * Alias for closeAll() for test compatibility
+   */
+  closeAllDevices(): void {
+    this.closeAll();
   }
 
   /**
@@ -231,6 +239,32 @@ export class MidiInputHandler extends EventEmitter {
   }
 
   /**
+   * Check if a device is enabled by the device filter
+   */
+  isDeviceEnabled(deviceName: string): boolean {
+    if (this.deviceFilter === null) {
+      return true; // All devices enabled
+    }
+
+    // Check exact match first
+    if (this.deviceFilter.has(deviceName)) {
+      return true;
+    }
+
+    // Check wildcard patterns
+    for (const pattern of this.deviceFilter) {
+      if (pattern.includes('*')) {
+        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+        if (regex.test(deviceName)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Register a mapping for routing
    */
   registerMapping(mapping: MappingEntity): void {
@@ -274,11 +308,26 @@ export class MidiInputHandler extends EventEmitter {
     const messageType = status & 0xF0; // Upper 4 bits
     const channel = (status & 0x0F) + 1; // Lower 4 bits, convert to 1-16
 
+    // Apply device filter
+    if (this.deviceFilter !== null && !this.isDeviceEnabled(deviceName)) {
+      return null; // Device filtered out
+    }
+
+    // Apply channel filter
+    if (!this.isChannelEnabled(channel)) {
+      return null; // Channel filtered out
+    }
+
+    let event: MidiInputEvent | null = null;
+
     switch (messageType) {
       case 0xB0: { // Control Change
+        if (message.length < 3) {
+          return null; // Invalid message
+        }
         const controller = message[1];
         const value = message[2];
-        return {
+        event = {
           type: 'cc',
           device: deviceName,
           channel,
@@ -286,12 +335,16 @@ export class MidiInputHandler extends EventEmitter {
           value,
           timestamp
         };
+        break;
       }
 
       case 0x90: { // Note On
+        if (message.length < 3) {
+          return null; // Invalid message
+        }
         const note = message[1];
         const velocity = message[2];
-        return {
+        event = {
           type: 'note',
           device: deviceName,
           channel,
@@ -300,12 +353,16 @@ export class MidiInputHandler extends EventEmitter {
           noteOn: velocity > 0, // velocity 0 is note off
           timestamp
         };
+        break;
       }
 
       case 0x80: { // Note Off
+        if (message.length < 3) {
+          return null; // Invalid message
+        }
         const note = message[1];
         const velocity = message[2];
-        return {
+        event = {
           type: 'note',
           device: deviceName,
           channel,
@@ -314,25 +371,73 @@ export class MidiInputHandler extends EventEmitter {
           noteOn: false,
           timestamp
         };
+        break;
       }
 
       case 0xE0: { // Pitch Bend
+        if (message.length < 3) {
+          return null; // Invalid message
+        }
         const lsb = message[1];
         const msb = message[2];
         // Pitch bend: 0-16383, center at 8192, convert to -8192 to 8191
         const rawValue = (msb << 7) | lsb;
         const value = rawValue - 8192;
-        return {
+        event = {
           type: 'pitchbend',
           device: deviceName,
           channel,
           value,
           timestamp
         };
+        break;
       }
 
       default:
         return null;
+    }
+
+    // Emit type-specific events and route to mappings
+    if (event) {
+      this.emit(event.type, event);
+      this.emit('midi:received', event);
+
+      // Route to registered mappings
+      this.routeEventToMappings(event);
+    }
+
+    return event;
+  }
+
+  /**
+   * Route an event to matching mappings
+   */
+  private routeEventToMappings(event: MidiInputEvent): void {
+    for (const mapping of this.mappings.values()) {
+      if (this.matchesMapping(event, mapping)) {
+        this.emit('mapping:matched', { mapping, event });
+
+        // Emit specific routing events based on target type
+        if (mapping.target.type === 'parameter') {
+          this.emit('parameter-change', {
+            mappingId: mapping.id,
+            patternId: mapping.target.patternId,
+            parameter: mapping.target.parameter,
+            value: this.getInputValue(event),
+            event
+          });
+        } else if (mapping.target.type === 'scene') {
+          // Only trigger on note-on
+          if (event.type === 'note' && (event as NoteEvent).noteOn) {
+            this.emit('scene-trigger', {
+              mappingId: mapping.id,
+              sceneId: mapping.target.sceneId,
+              quantize: mapping.quantize,
+              event
+            });
+          }
+        }
+      }
     }
   }
 
@@ -340,31 +445,8 @@ export class MidiInputHandler extends EventEmitter {
    * Handle incoming MIDI message and route to matching mappings
    */
   private handleMessage(deviceName: string, message: number[]): void {
-    const event = this.parseMessage(message, deviceName);
-    if (!event) {
-      this.emit('error', new Error('Failed to parse MIDI message'));
-      return;
-    }
-
-    // Apply device filter
-    if (this.deviceFilter !== null && !this.deviceFilter.has(deviceName)) {
-      return; // Device filtered out
-    }
-
-    // Apply channel filter
-    if (this.channelFilter !== null && !this.channelFilter.has(event.channel)) {
-      return; // Channel filtered out
-    }
-
-    // Emit raw event
-    this.emit('midi:received', event);
-
-    // Find matching mappings and emit routed events
-    for (const mapping of this.mappings.values()) {
-      if (this.matchesMapping(event, mapping)) {
-        this.emit('mapping:matched', { mapping, event });
-      }
-    }
+    // parseMessage will handle filtering, event emission, and routing
+    this.parseMessage(message, deviceName);
   }
 
   /**
@@ -373,20 +455,23 @@ export class MidiInputHandler extends EventEmitter {
   private matchesMapping(event: MidiInputEvent, mapping: MappingEntity): boolean {
     const source = mapping.source;
 
+    // Parameter sources don't match MIDI input events
+    if (source.type === 'parameter') {
+      return false;
+    }
+
     // Type must match
     if (source.type !== event.type) {
       return false;
     }
 
     // Device filter (if specified)
-    if (source.type !== 'parameter' && source.device) {
-      if (source.device !== event.device) {
-        return false;
-      }
+    if (source.device && source.device !== event.device) {
+      return false;
     }
 
     // Channel filter
-    if (source.type !== 'parameter' && source.channel !== event.channel) {
+    if (source.channel !== event.channel) {
       return false;
     }
 

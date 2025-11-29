@@ -1,0 +1,41 @@
+{
+  "$schema": "../../schemas/macro.schema.json",
+  "id": "master-velocity",
+  "name": "Master Velocity",
+  "description": "Controls the velocity of all patterns for overall dynamics",
+  "defaultValue": 0.8,
+  "targets": [
+    {
+      "patternId": "kick",
+      "parameter": "euclidean.velocity",
+      "scaling": {
+        "min": 60,
+        "max": 127
+      }
+    },
+    {
+      "patternId": "hats",
+      "parameter": "euclidean.velocity",
+      "scaling": {
+        "min": 40,
+        "max": 110
+      }
+    },
+    {
+      "patternId": "snare",
+      "parameter": "euclidean.velocity",
+      "scaling": {
+        "min": 70,
+        "max": 127
+      }
+    },
+    {
+      "patternId": "bass",
+      "parameter": "euclidean.velocity",
+      "scaling": {
+        "min": 50,
+        "max": 120
+      }
+    }
+  ]
+}

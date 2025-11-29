@@ -1,0 +1,128 @@
+[
+  {
+    "id": "mod-wheel-to-velocity",
+    "enabled": true,
+    "source": {
+      "type": "cc",
+      "device": "Launchpad Pro",
+      "channel": 1,
+      "controller": 1
+    },
+    "target": {
+      "type": "parameter",
+      "patternId": "kick",
+      "parameter": "velocity"
+    },
+    "transform": {
+      "type": "linear",
+      "inputRange": [0, 127],
+      "outputRange": [50, 127],
+      "smoothing": 10
+    },
+    "quantize": "immediate"
+  },
+  {
+    "id": "knob-to-filter-macro",
+    "enabled": true,
+    "source": {
+      "type": "cc",
+      "device": "MPD32",
+      "channel": 10,
+      "controller": 71
+    },
+    "target": {
+      "type": "macro",
+      "macroId": "filter-cutoff"
+    },
+    "transform": {
+      "type": "exponential",
+      "curve": 2.0,
+      "inputRange": [0, 127],
+      "outputRange": [100, 10000],
+      "smoothing": 20,
+      "deadZone": 2,
+      "deadZoneEnd": 2
+    }
+  },
+  {
+    "id": "note-trigger-scene",
+    "enabled": true,
+    "source": {
+      "type": "note",
+      "device": "Keyboard",
+      "channel": 16,
+      "note": 60
+    },
+    "target": {
+      "type": "scene",
+      "sceneId": "verse"
+    },
+    "quantize": "bar"
+  },
+  {
+    "id": "pitchbend-to-rate",
+    "enabled": true,
+    "source": {
+      "type": "pitchbend",
+      "device": "Arturia KeyStep",
+      "channel": 1
+    },
+    "target": {
+      "type": "parameter",
+      "patternId": "arp",
+      "parameter": "rate"
+    },
+    "transform": {
+      "type": "logarithmic",
+      "curve": 0.5,
+      "inputRange": [0, 16383],
+      "outputRange": [0.25, 4.0],
+      "smoothing": 50
+    },
+    "quantize": "beat"
+  },
+  {
+    "id": "fader-to-octave",
+    "enabled": true,
+    "source": {
+      "type": "cc",
+      "device": "Faderfox",
+      "channel": 1,
+      "controller": 7
+    },
+    "target": {
+      "type": "parameter",
+      "patternId": "bass",
+      "parameter": "octave"
+    },
+    "transform": {
+      "type": "linear",
+      "inputRange": [0, 127],
+      "outputRange": [1, 5],
+      "quantize": 5,
+      "deadZone": 5,
+      "deadZoneEnd": 5
+    },
+    "quantize": "immediate"
+  },
+  {
+    "id": "pad-to-probability",
+    "enabled": false,
+    "source": {
+      "type": "note",
+      "device": "Push 2",
+      "channel": 1,
+      "note": 36
+    },
+    "target": {
+      "type": "parameter",
+      "patternId": "hat",
+      "parameter": "probability"
+    },
+    "transform": {
+      "type": "linear",
+      "inputRange": [0, 127],
+      "outputRange": [0, 1]
+    }
+  }
+]

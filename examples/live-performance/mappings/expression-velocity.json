@@ -1,0 +1,26 @@
+{
+  "$schema": "../../schemas/mapping.schema.json",
+  "id": "ch1-fader-velocity",
+  "name": "Channel 1 Fader → Master Velocity",
+  "description": "PBF4 Channel 1 Fader (CC2) controls master velocity macro with logarithmic curve",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 1,
+    "type": "cc",
+    "number": 2
+  },
+  "target": {
+    "type": "macro",
+    "macro": "master-velocity"
+  },
+  "transform": {
+    "inputMin": 0,
+    "inputMax": 127,
+    "outputMin": 0.0,
+    "outputMax": 1.0,
+    "curve": "logarithmic",
+    "deadzone": 5,
+    "smooth": 30
+  }
+}

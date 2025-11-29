@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/mapping.schema.json",
+  "id": "ch1-button-intro",
+  "name": "Channel 1 Button → Intro Scene",
+  "description": "PBF4 Channel 1 Button (CC3 value 127) triggers intro scene, quantized to bar boundary",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 1,
+    "type": "cc",
+    "number": 3
+  },
+  "target": {
+    "type": "scene",
+    "sceneId": "intro"
+  },
+  "behavior": {
+    "quantize": "bar",
+    "threshold": 64
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "project": {
+    "name": "Live Performance Example",
+    "version": "1.0.0",
+    "description": "Comprehensive MIDI controller mapping demonstration with gestural control, macros, and scene management"
+  },
+  "clock": {
+    "bpm": 120,
+    "ppq": 96,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    }
+  }
+}

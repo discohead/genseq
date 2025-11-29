@@ -1,89 +1,226 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://genseq.dev/schemas/mapping.schema.json",
-  "title": "GenSeq MIDI Input Mapping",
-  "description": "Map MIDI input to pattern parameters",
+  "title": "GenSeq MIDI Input Mapping Configuration",
+  "description": "Configuration for MIDI input to parameter/macro/scene mappings with transformations",
   "type": "object",
-  "required": ["source", "target"],
+  "required": ["id", "source", "target"],
   "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique mapping identifier",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether mapping is active",
+      "default": true
+    },
     "source": {
       "type": "object",
-      "description": "MIDI input source",
-      "required": ["device", "type"],
+      "description": "MIDI input source configuration",
+      "required": ["type", "device", "channel"],
       "properties": {
-        "device": {
-          "type": "string",
-          "description": "MIDI input device name"
-        },
         "type": {
           "type": "string",
           "description": "MIDI message type",
-          "enum": ["cc", "note", "aftertouch", "pitchbend"]
+          "enum": ["cc", "note", "pitchbend"]
+        },
+        "device": {
+          "type": "string",
+          "description": "MIDI input device name or port"
         },
         "channel": {
           "type": "integer",
+          "description": "MIDI channel (1-16)",
           "minimum": 1,
           "maximum": 16
         },
-        "cc": {
+        "controller": {
           "type": "integer",
-          "description": "CC number for CC messages",
+          "description": "CC controller number (0-127, required for type=cc)",
           "minimum": 0,
           "maximum": 127
         },
         "note": {
           "type": "integer",
-          "description": "Note number for note messages",
+          "description": "MIDI note number (0-127, required for type=note)",
+          "minimum": 0,
+          "maximum": 127
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "cc" } }
+          },
+          "then": {
+            "required": ["controller"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "note" } }
+          },
+          "then": {
+            "required": ["note"]
+          }
+        }
+      ]
+    },
+    "target": {
+      "type": "object",
+      "description": "Mapping target configuration",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Target type",
+          "enum": ["parameter", "macro", "scene"]
+        },
+        "patternId": {
+          "type": "string",
+          "description": "Target pattern ID (required for type=parameter)",
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "parameter": {
+          "type": "string",
+          "description": "Target parameter name (required for type=parameter)"
+        },
+        "macroId": {
+          "type": "string",
+          "description": "Target macro ID (required for type=macro)",
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "sceneId": {
+          "type": "string",
+          "description": "Target scene ID (required for type=scene)",
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "parameter" } }
+          },
+          "then": {
+            "required": ["patternId", "parameter"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "macro" } }
+          },
+          "then": {
+            "required": ["macroId"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "scene" } }
+          },
+          "then": {
+            "required": ["sceneId"]
+          }
+        }
+      ]
+    },
+    "transform": {
+      "type": "object",
+      "description": "Value transformation parameters (optional for scene targets)",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Transformation curve type",
+          "enum": ["linear", "exponential", "logarithmic"]
+        },
+        "inputRange": {
+          "type": "array",
+          "description": "Input value range [min, max]",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2,
+          "default": [0, 127]
+        },
+        "outputRange": {
+          "type": "array",
+          "description": "Output value range [min, max]",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2,
+          "default": [0, 1]
+        },
+        "curve": {
+          "type": "number",
+          "description": "Curve exponent (required for exponential/logarithmic, >0)",
+          "exclusiveMinimum": 0
+        },
+        "smoothing": {
+          "type": "number",
+          "description": "Smoothing time in milliseconds (0 = no smoothing)",
+          "minimum": 0,
+          "default": 0
+        },
+        "deadZone": {
+          "type": "number",
+          "description": "Dead zone at minimum threshold",
+          "minimum": 0,
+          "default": 0
+        },
+        "deadZoneEnd": {
+          "type": "number",
+          "description": "Dead zone at maximum threshold",
+          "minimum": 0,
+          "default": 0
+        },
+        "quantize": {
+          "type": "integer",
+          "description": "Quantize output to N discrete steps (>0)",
+          "minimum": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["exponential", "logarithmic"]
+              }
+            }
+          },
+          "then": {
+            "required": ["curve"]
+          }
+        }
+      ]
+    },
+    "quantize": {
+      "type": "string",
+      "description": "Timing quantization for parameter/scene changes",
+      "enum": ["bar", "beat", "immediate"],
+      "default": "immediate"
+    },
+    "threshold": {
+      "type": "integer",
+      "description": "Minimum CC value to trigger (0-127). Useful for buttons that send 127 on press, 0 on release - set to 64 to trigger only on press",
+      "minimum": 0,
+      "maximum": 127
+    },
+    "behavior": {
+      "type": "object",
+      "description": "Alternative container for scene trigger options (quantize, threshold)",
+      "properties": {
+        "quantize": {
+          "type": "string",
+          "enum": ["bar", "beat", "immediate"]
+        },
+        "threshold": {
+          "type": "integer",
           "minimum": 0,
           "maximum": 127
         }
       }
-    },
-    "target": {
-      "type": "object",
-      "description": "Pattern parameter target",
-      "required": ["pattern", "parameter"],
-      "properties": {
-        "pattern": {
-          "type": "string",
-          "description": "Target pattern ID"
-        },
-        "parameter": {
-          "type": "string",
-          "description": "Parameter name to control"
-        }
-      }
-    },
-    "transform": {
-      "type": "object",
-      "description": "Input transformation",
-      "properties": {
-        "min": {
-          "type": "number",
-          "description": "Minimum output value"
-        },
-        "max": {
-          "type": "number",
-          "description": "Maximum output value"
-        },
-        "curve": {
-          "type": "string",
-          "description": "Scaling curve",
-          "enum": ["linear", "exponential", "logarithmic"],
-          "default": "linear"
-        },
-        "smooth": {
-          "type": "number",
-          "description": "Smoothing time in ms",
-          "minimum": 0,
-          "maximum": 1000,
-          "default": 0
-        }
-      }
-    },
-    "enabled": {
-      "type": "boolean",
-      "default": true
     }
   }
 }

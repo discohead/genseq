@@ -1,0 +1,41 @@
+{
+  "$schema": "../../schemas/scene.schema.json",
+  "id": "main",
+  "name": "Main Scene",
+  "description": "Full patterns - all instruments active",
+  "activePatterns": ["kick", "hats", "snare", "bass"],
+  "patternOverrides": {
+    "kick": {
+      "euclidean": {
+        "pulses": 4,
+        "velocity": 110
+      }
+    },
+    "hats": {
+      "euclidean": {
+        "pulses": 8,
+        "velocity": 85
+      }
+    },
+    "snare": {
+      "euclidean": {
+        "pulses": 2,
+        "velocity": 115
+      }
+    },
+    "bass": {
+      "euclidean": {
+        "pulses": 5,
+        "velocity": 95
+      }
+    }
+  },
+  "macros": {
+    "master-density": 1.0,
+    "master-velocity": 0.9
+  },
+  "transition": {
+    "type": "queued",
+    "quantize": "bar"
+  }
+}

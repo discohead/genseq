@@ -1,0 +1,21 @@
+{
+  "id": "cc1-to-density",
+  "source": {
+    "type": "cc",
+    "channel": 1,
+    "controller": 1,
+    "device": "Launchpad Pro"
+  },
+  "target": {
+    "type": "parameter",
+    "patternId": "kick",
+    "parameter": "density"
+  },
+  "transform": {
+    "type": "linear",
+    "inputRange": [0, 127],
+    "outputRange": [0.0, 1.0],
+    "smoothing": 30,
+    "deadZone": 5
+  }
+}

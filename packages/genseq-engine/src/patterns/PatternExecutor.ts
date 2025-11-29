@@ -233,11 +233,26 @@ export class PatternExecutor extends EventEmitter {
     const entityUpdates: Record<string, any> = {};
     const parameterUpdates: Record<string, any> = {};
 
+    // Handle dotted parameter names (e.g., "euclidean.velocity" -> "velocity")
+    // If param name is "type.paramName" and pattern type matches, use just "paramName"
+    const patternType = pattern.entity.type;
+
     for (const [key, value] of Object.entries(parameters)) {
-      if (entityFields.includes(key)) {
-        entityUpdates[key] = value;
+      let normalizedKey = key;
+
+      // Check for dotted parameter name (e.g., "euclidean.velocity")
+      if (key.includes('.')) {
+        const [typePrefix, paramName] = key.split('.', 2);
+        // If the prefix matches the pattern type, strip it
+        if (typePrefix === patternType && paramName) {
+          normalizedKey = paramName;
+        }
+      }
+
+      if (entityFields.includes(normalizedKey)) {
+        entityUpdates[normalizedKey] = value;
       } else {
-        parameterUpdates[key] = value;
+        parameterUpdates[normalizedKey] = value;
       }
     }
 
@@ -256,8 +271,9 @@ export class PatternExecutor extends EventEmitter {
     };
 
     // Update the pattern instance immediately if it has an updateConfig method
+    // Pass the normalized parameters (with type prefix stripped)
     if (pattern.patternInstance && typeof pattern.patternInstance.updateConfig === 'function') {
-      pattern.patternInstance.updateConfig(parameters);
+      pattern.patternInstance.updateConfig(parameterUpdates);
     }
 
     // Mark for reload on next cycle boundary (don't interrupt current cycle)

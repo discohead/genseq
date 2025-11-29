@@ -1,0 +1,26 @@
+{
+  "$schema": "../../schemas/mapping.schema.json",
+  "id": "ch2-knob-rotation",
+  "name": "Channel 2 Knob → Kick Rotation",
+  "description": "PBF4 Channel 2 Knob (CC1) controls kick pattern rotation with exponential curve for smooth parameter sweeps",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 2,
+    "type": "cc",
+    "number": 1
+  },
+  "target": {
+    "type": "parameter",
+    "patternId": "kick",
+    "parameter": "euclidean.rotation"
+  },
+  "transform": {
+    "inputMin": 0,
+    "inputMax": 127,
+    "outputMin": 0,
+    "outputMax": 16,
+    "curve": "exponential",
+    "smooth": 20
+  }
+}

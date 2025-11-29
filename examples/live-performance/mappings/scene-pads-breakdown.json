@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/mapping.schema.json",
+  "id": "ch3-button-breakdown",
+  "name": "Channel 3 Button → Breakdown Scene",
+  "description": "PBF4 Channel 3 Button (CC3 value 127) triggers breakdown scene, quantized to bar boundary",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 3,
+    "type": "cc",
+    "number": 3
+  },
+  "target": {
+    "type": "scene",
+    "sceneId": "breakdown"
+  },
+  "behavior": {
+    "quantize": "bar",
+    "threshold": 64
+  }
+}

@@ -4,9 +4,17 @@ import type { TransformConfig } from '../config/entities/MappingEntity';
  * T060 + T062: Input value transformation with smoothing
  *
  * Transforms MIDI input values (0-127, -8192 to 8191) to target ranges
- * with linear or exponential curves, dead zones, and time-based smoothing.
+ * with linear, exponential, or logarithmic curves, dead zones, quantization,
+ * and time-based smoothing.
  *
  * Performance contract: <0.1ms transform latency, <1ms smoothing overhead
+ *
+ * Transformation pipeline:
+ * 1. Apply dead zone filtering
+ * 2. Apply curve transformation (linear, exponential, logarithmic)
+ * 3. Apply scaling to target range
+ * 4. Apply smoothing (time-based moving average)
+ * 5. Apply quantization if configured
  */
 
 interface SmoothingState {
@@ -30,7 +38,7 @@ export class InputTransformer {
       throw new Error('outputRange is required and must be an array of length 2');
     }
 
-    // Check dead zones first - return null if in dead zone
+    // Step 1: Check dead zones first - return null if in dead zone
     if (this.isInStartDeadZone(inputValue, config) || this.isInEndDeadZone(inputValue, config)) {
       return null;
     }
@@ -55,7 +63,7 @@ export class InputTransformer {
     // Clamp to 0-1
     normalized = Math.max(0, Math.min(1, normalized));
 
-    // Apply transformation curve
+    // Step 2: Apply transformation curve
     let transformed: number;
     switch (config.type) {
       case 'linear':
@@ -73,19 +81,37 @@ export class InputTransformer {
         }
         transformed = Math.pow(normalized, config.curve);
         break;
+      case 'logarithmic':
+        if (!config.curve) {
+          throw new Error('Curve is required for logarithmic transformation');
+        }
+        if (config.curve <= 0) {
+          throw new Error('Curve must be positive for logarithmic transformation');
+        }
+        // Logarithmic curve: log(1 + x * (base - 1)) / log(base)
+        // This ensures the curve passes through (0,0) and (1,1)
+        const base = config.curve + 1; // curve=1 means base=2
+        transformed = Math.log(1 + normalized * (base - 1)) / Math.log(base);
+        break;
       default:
         throw new Error(`Unknown transformation type: ${config.type}`);
     }
 
-    // Map to output range
+    // Step 3: Map to output range
     const [outputMin, outputMax] = config.outputRange;
-    const result = outputMin + transformed * (outputMax - outputMin);
+    let result = outputMin + transformed * (outputMax - outputMin);
+
+    // Step 5: Apply quantization if configured
+    // (Step 4, smoothing, is only in transformSmoothed)
+    if (config.quantize && config.quantize > 0) {
+      result = this.quantizeValue(result, config.outputRange, config.quantize);
+    }
 
     return result;
   }
 
   /**
-   * Transform with smoothing (30ms time-based averaging)
+   * Transform with smoothing (time-based averaging)
    */
   transformSmoothed(
     inputValue: number,
@@ -146,6 +172,27 @@ export class InputTransformer {
   }
 
   /**
+   * Quantize a value to discrete steps
+   */
+  private quantizeValue(value: number, outputRange: [number, number], steps: number): number {
+    const [min, max] = outputRange;
+    const range = max - min;
+    const stepSize = range / (steps - 1);
+
+    // Handle both ascending and descending ranges
+    const actualMin = Math.min(min, max);
+    const actualMax = Math.max(min, max);
+
+    // Find nearest step
+    const normalizedValue = value - min;
+    const stepIndex = Math.round(normalizedValue / stepSize);
+    const quantizedValue = min + stepIndex * stepSize;
+
+    // Clamp to actual range bounds
+    return Math.max(actualMin, Math.min(actualMax, quantizedValue));
+  }
+
+  /**
    * Clear smoothing state for a transformer
    */
   clearSmoothing(transformerId: string): void {
@@ -171,13 +218,8 @@ export class InputTransformer {
     const [inputMin, inputMax] = config.inputRange;
     const deadZoneSize = Math.abs(config.deadZone);
 
-    if (inputMin < inputMax) {
-      // Ascending range
-      return inputValue >= inputMin && inputValue <= inputMin + deadZoneSize;
-    } else {
-      // Descending range
-      return inputValue <= inputMin && inputValue >= inputMin - deadZoneSize;
-    }
+    // Always check from inputMin regardless of range direction
+    return inputValue >= inputMin && inputValue <= inputMin + deadZoneSize;
   }
 
   /**
@@ -191,13 +233,8 @@ export class InputTransformer {
     const [inputMin, inputMax] = config.inputRange;
     const deadZoneSize = Math.abs(config.deadZoneEnd);
 
-    if (inputMin < inputMax) {
-      // Ascending range
-      return inputValue >= inputMax - deadZoneSize && inputValue <= inputMax;
-    } else {
-      // Descending range
-      return inputValue <= inputMax + deadZoneSize && inputValue >= inputMax;
-    }
+    // Always check from inputMax regardless of range direction
+    return inputValue >= inputMax - deadZoneSize && inputValue <= inputMax;
   }
 
   /**

@@ -10,12 +10,18 @@ import { PerformanceMonitor } from './monitoring/PerformanceMonitor';
 import { ClockEntityLoader } from './config/entities/ClockEntity';
 import { PatternEntityLoader, type PatternEntity } from './config/entities/PatternEntity';
 import { RouteEntityLoader, type RouteEntity } from './config/entities/RouteEntity';
+import { MappingEntityLoader, type MappingEntity } from './config/entities/MappingEntity';
+import { MacroEntityLoader, type MacroEntity } from './config/entities/MacroEntity';
 import { EuclideanPattern, type PatternContext } from '@genseq/patterns';
 import { HotReloadCoordinator } from './config/HotReloadCoordinator';
 import { PatternFileWatcher } from './hotreload/PatternFileWatcher';
 import { RouteFileWatcher } from './hotreload/RouteFileWatcher';
 import { ClockFileWatcher } from './hotreload/ClockFileWatcher';
+import { MidiInputHandler, type MidiInputEvent } from './midi/MidiInputHandler';
+import { MappingRouter } from './mappings/MappingRouter';
+import { QuantizedTrigger } from './mappings/QuantizedTrigger';
 import * as path from 'path';
+import * as fs from 'fs';
 
 /**
  * T033: GenSeqEngine - main class integrating all components
@@ -67,12 +73,18 @@ export class GenSeqEngine extends EventEmitter {
   private routeFileWatcher: RouteFileWatcher | null = null;
   private clockFileWatcher: ClockFileWatcher | null = null;
 
+  // MIDI Input components (FR-013 to FR-017)
+  private midiInputHandler: MidiInputHandler | null = null;
+  private mappingRouter: MappingRouter | null = null;
+  private quantizedTrigger: QuantizedTrigger | null = null;
+
   // State
   private initialized: boolean = false;
   private activeConfig: any = null;
   private initialRoutes: Map<string, string> = new Map(); // routeId -> device mapping for hot-reload tracking
   // T028: Track initial pattern types for type change detection
   private initialPatternTypes: Map<string, string> = new Map(); // patternId -> type mapping
+  private projectPath: string | null = null;
 
   constructor(config: GenSeqEngineConfig = {}) {
     super();
@@ -107,6 +119,11 @@ export class GenSeqEngine extends EventEmitter {
         swapAtBarBoundary: true
       });
     }
+
+    // Initialize MIDI input components (FR-013 to FR-017)
+    this.midiInputHandler = new MidiInputHandler();
+    this.mappingRouter = new MappingRouter();
+    this.quantizedTrigger = new QuantizedTrigger(this.clock, this.scheduler);
 
     this.setupEventHandlers();
   }
@@ -246,6 +263,64 @@ export class GenSeqEngine extends EventEmitter {
         this.emit('error', { source: 'hotReloadCoordinator', error });
       });
     }
+
+    // MIDI Input event forwarding (FR-013 to FR-017)
+    if (this.midiInputHandler) {
+      // Forward all MIDI input events
+      this.midiInputHandler.on('midi:received', (event: MidiInputEvent) => {
+        this.emit('midi:received', event);
+        // Route to mapping router
+        if (this.mappingRouter) {
+          this.mappingRouter.routeEvent(event);
+        }
+      });
+
+      this.midiInputHandler.on('cc', (event) => {
+        this.emit('midi:cc', event);
+      });
+
+      this.midiInputHandler.on('note', (event) => {
+        this.emit('midi:note', event);
+      });
+
+      this.midiInputHandler.on('pitchbend', (event) => {
+        this.emit('midi:pitchbend', event);
+      });
+    }
+
+    // Mapping Router event forwarding
+    if (this.mappingRouter) {
+      // Parameter changes from MIDI input
+      this.mappingRouter.on('parameter-change', (event) => {
+        this.emit('parameter-change', event);
+        this.applyParameterChange(event.patternId, event.parameter, event.value);
+      });
+
+      // Scene triggers from MIDI input
+      this.mappingRouter.on('scene-trigger', (event) => {
+        this.emit('scene-trigger', event);
+        if (this.quantizedTrigger) {
+          this.quantizedTrigger.trigger(event.sceneId, event.quantize || 'bar');
+        }
+      });
+
+      // Macro expansion events
+      this.mappingRouter.on('macro-expanded', (event) => {
+        this.emit('macro-expanded', event);
+      });
+    }
+
+    // Quantized Trigger event forwarding
+    if (this.quantizedTrigger) {
+      this.quantizedTrigger.on('trigger:scheduled', (event) => {
+        this.emit('trigger:scheduled', event);
+      });
+
+      this.quantizedTrigger.on('trigger:executed', (event) => {
+        this.emit('trigger:executed', event);
+        // TODO: Wire to SceneManager in Phase 6
+      });
+    }
   }
 
   /**
@@ -267,12 +342,152 @@ export class GenSeqEngine extends EventEmitter {
   }
 
   /**
+   * Load MIDI input mappings from project directory (FR-013)
+   */
+  private async loadMappings(projectPath: string): Promise<void> {
+    if (!this.mappingRouter) return;
+
+    const mappingsPath = path.join(projectPath, 'mappings');
+    if (!fs.existsSync(mappingsPath)) {
+      console.log('[GenSeqEngine] No mappings directory found (optional)');
+      return;
+    }
+
+    try {
+      // List available MIDI input devices for debugging
+      if (this.midiInputHandler) {
+        const inputDevices = await this.midiInputHandler.listDevices();
+        console.log('\n📡 Available MIDI INPUT devices:');
+        inputDevices.forEach((dev, i) => console.log(`  ${i}: ${dev.name}`));
+        console.log('');
+      }
+
+      const mappings = MappingEntityLoader.loadFromDirectory(mappingsPath);
+      console.log(`[GenSeqEngine] Found ${mappings.length} mapping files in ${mappingsPath}`);
+
+      // Collect devices to open (specific devices from mappings, or all if any mapping uses "any")
+      const devicesToOpen = new Set<string>();
+      let openAllDevices = false;
+
+      // First pass: determine which devices to open
+      for (const mapping of mappings) {
+        if (mapping.source.type !== 'parameter') {
+          if (mapping.source.device) {
+            devicesToOpen.add(mapping.source.device);
+          } else {
+            // No device specified means "any" - open all available devices
+            openAllDevices = true;
+          }
+        }
+      }
+
+      // Open MIDI input devices
+      if (this.midiInputHandler) {
+        if (openAllDevices) {
+          // Open all available MIDI input devices
+          const inputDevices = await this.midiInputHandler.listDevices();
+          console.log(`[GenSeqEngine] Opening ALL ${inputDevices.length} MIDI input devices (mappings use "any" device)...`);
+          for (const device of inputDevices) {
+            try {
+              await this.midiInputHandler.openDevice(device.name);
+              console.log(`[GenSeqEngine] ✅ Opened MIDI input device: "${device.name}"`);
+            } catch (error: any) {
+              console.warn(`[GenSeqEngine] ⚠️ Failed to open MIDI input device "${device.name}": ${error.message}`);
+            }
+          }
+        } else {
+          // Open only specific devices
+          for (const deviceName of devicesToOpen) {
+            try {
+              console.log(`[GenSeqEngine] Opening MIDI input device: "${deviceName}"...`);
+              await this.midiInputHandler.openDevice(deviceName);
+              console.log(`[GenSeqEngine] ✅ Opened MIDI input device: "${deviceName}"`);
+            } catch (error: any) {
+              console.warn(`[GenSeqEngine] ⚠️ Failed to open MIDI input device "${deviceName}": ${error.message}`);
+            }
+          }
+        }
+      }
+
+      // Register all mappings with router
+      for (const mapping of mappings) {
+        this.mappingRouter.registerMapping(mapping);
+        console.log(`[GenSeqEngine] Registered mapping: ${mapping.id} (source: ${mapping.source.type}, device: ${mapping.source.type !== 'parameter' ? mapping.source.device || 'any' : 'N/A'})`);
+      }
+
+      // Log active devices after all mappings processed
+      if (this.midiInputHandler) {
+        const activeDevices = this.midiInputHandler.getActiveDevices();
+        console.log(`[GenSeqEngine] Active MIDI input devices: [${activeDevices.join(', ')}]`);
+      }
+
+      console.log(`Loaded ${mappings.length} MIDI input mappings`);
+    } catch (error) {
+      console.error('Error loading mappings:', error);
+      this.emit('error', { source: 'loadMappings', error });
+    }
+  }
+
+  /**
+   * Load macro configurations from project directory (FR-014)
+   */
+  private async loadMacros(projectPath: string): Promise<void> {
+    if (!this.mappingRouter) return;
+
+    const macrosPath = path.join(projectPath, 'macros');
+    if (!fs.existsSync(macrosPath)) {
+      // Macros directory is optional
+      return;
+    }
+
+    try {
+      const files = fs.readdirSync(macrosPath).filter(f =>
+        f.endsWith('.json') || f.endsWith('.yaml') || f.endsWith('.yml')
+      );
+
+      let macroCount = 0;
+      for (const file of files) {
+        const filePath = path.join(macrosPath, file);
+        try {
+          const macro = MacroEntityLoader.load(filePath);
+          this.mappingRouter.registerMacro(macro);
+          macroCount++;
+        } catch (error) {
+          console.error(`Error loading macro ${file}:`, error);
+        }
+      }
+
+      console.log(`Loaded ${macroCount} macros`);
+    } catch (error) {
+      console.error('Error loading macros:', error);
+      this.emit('error', { source: 'loadMacros', error });
+    }
+  }
+
+  /**
+   * Apply parameter change from MIDI input to pattern (FR-015)
+   */
+  private applyParameterChange(patternId: string, parameter: string, value: number): void {
+    try {
+      const params: Record<string, any> = {};
+      params[parameter] = value;
+
+      this.patternExecutor.updatePatternParameters(patternId, params);
+    } catch (error) {
+      console.error(`Failed to apply parameter change to ${patternId}.${parameter}:`, error);
+      this.emit('error', { source: 'applyParameterChange', error, patternId, parameter, value });
+    }
+  }
+
+  /**
    * Load project configuration
    */
   async loadProject(projectPath: string): Promise<void> {
     if (!this.initialized) {
       throw new Error('Engine not initialized. Call initialize() first.');
     }
+
+    this.projectPath = projectPath;
 
     try {
       // Load clock configuration
@@ -307,6 +522,16 @@ export class GenSeqEngine extends EventEmitter {
         // T028: Track initial pattern types
         this.initialPatternTypes.set(pattern.id, pattern.type);
         this.loadPattern(pattern);
+      }
+
+      // Load MIDI input mappings and macros (FR-013, FR-014)
+      await this.loadMappings(projectPath);
+      await this.loadMacros(projectPath);
+
+      // Update available patterns for macro wildcard matching
+      if (this.mappingRouter) {
+        const patternIds = patterns.map(p => p.id);
+        this.mappingRouter.updateAvailablePatterns(patternIds);
       }
 
       // Start watching pattern directory for hot-reload (T056)
@@ -819,6 +1044,22 @@ export class GenSeqEngine extends EventEmitter {
     // Dispose hot-reload coordinator
     if (this.hotReloadCoordinator) {
       await this.hotReloadCoordinator.dispose();
+    }
+
+    // Clean up MIDI input components (FR-013 to FR-017)
+    if (this.midiInputHandler) {
+      this.midiInputHandler.destroy();
+      this.midiInputHandler = null;
+    }
+
+    if (this.mappingRouter) {
+      this.mappingRouter.destroy();
+      this.mappingRouter = null;
+    }
+
+    if (this.quantizedTrigger) {
+      this.quantizedTrigger.destroy();
+      this.quantizedTrigger = null;
     }
 
     await this.midiIO.close();

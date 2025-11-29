@@ -41,11 +41,11 @@ export class MacroEntityValidator {
 
     // Validate targets
     if (!Array.isArray(config.targets)) {
-      throw new Error('Macro targets must be an array');
+      throw new Error('Macro targets is required and must be an array');
     }
 
     if (config.targets.length === 0) {
-      throw new Error('Macro must have at least one target');
+      throw new Error('Macro targets cannot be empty, must have at least one target');
     }
 
     const targets = config.targets.map((target: any, index: number) => {
@@ -72,12 +72,12 @@ export class MacroEntityValidator {
     if (target.patternId.includes('*')) {
       const asteriskCount = (target.patternId.match(/\*/g) || []).length;
       if (asteriskCount > 1) {
-        throw new Error(`Macro target ${index}: only single wildcard allowed in patternId`);
+        throw new Error(`Wildcard pattern can only have a single wildcard`);
       }
       // Valid patterns: *, prefix-*, *-suffix
       const validPattern = /^(\*|[\w-]+\*|\*[\w-]+)$/;
       if (!validPattern.test(target.patternId)) {
-        throw new Error(`Macro target ${index}: invalid wildcard pattern "${target.patternId}"`);
+        throw new Error(`Wildcard pattern can only have a single wildcard`);
       }
     }
 
@@ -87,6 +87,8 @@ export class MacroEntityValidator {
     }
 
     // Validate scale (default 1.0)
+    // Note: scale can be large when derived from scaling: { min, max } ranges
+    // e.g., pulses 1-8 produces scale=7, steps 1-16 produces scale=15
     let scale = 1.0;
     if (target.scale !== undefined) {
       if (typeof target.scale !== 'number') {
@@ -94,9 +96,6 @@ export class MacroEntityValidator {
       }
       if (target.scale < 0) {
         throw new Error(`Macro target ${index}: scale cannot be negative`);
-      }
-      if (target.scale > 2.0) {
-        throw new Error(`Macro target ${index}: scale must be between 0 and 2.0`);
       }
       scale = target.scale;
     }
@@ -153,6 +152,43 @@ export class MacroEntityValidator {
  * Loader for Macro entity from file
  */
 export class MacroEntityLoader {
+  /**
+   * Normalize macro config from file format to internal format
+   *
+   * Converts:
+   * - scaling: { min, max } → scale, offset, clamp
+   *   Formula: output = min + (input * (max - min))
+   *   Where input is expected to be 0-1 from mapping transform
+   */
+  private static normalizeConfig(config: any): any {
+    const normalized = { ...config };
+
+    if (config.targets && Array.isArray(config.targets)) {
+      normalized.targets = config.targets.map((target: any) => {
+        const normalizedTarget = { ...target };
+
+        // Convert scaling: { min, max } to scale/offset/clamp
+        if (target.scaling && !target.scale && !target.offset) {
+          const { min, max } = target.scaling;
+
+          if (typeof min === 'number' && typeof max === 'number') {
+            // Formula: output = min + (input * (max - min))
+            // In scale/offset terms: output = (input * scale) + offset
+            normalizedTarget.scale = max - min;
+            normalizedTarget.offset = min;
+            normalizedTarget.clamp = { min, max };
+          }
+
+          delete normalizedTarget.scaling;
+        }
+
+        return normalizedTarget;
+      });
+    }
+
+    return normalized;
+  }
+
   static load(filePath: string): MacroEntity {
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
@@ -167,7 +203,10 @@ export class MacroEntityLoader {
         throw new Error(`Unsupported file type: ${ext}`);
       }
 
-      return MacroEntityValidator.validate(config);
+      // Normalize config before validation
+      const normalizedConfig = this.normalizeConfig(config);
+
+      return MacroEntityValidator.validate(normalizedConfig);
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         throw new Error(`Macro file not found: ${filePath}`);

@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schemas/pattern.schema.json",
+  "id": "kick",
+  "name": "Kick Pattern",
+  "type": "euclidean",
+  "bus": "drums",
+  "enabled": true,
+  "note": 36,
+  "channel": 1,
+  "euclidean": {
+    "steps": 16,
+    "pulses": 4,
+    "rotation": 0,
+    "velocity": 100,
+    "gateLength": 24
+  }
+}

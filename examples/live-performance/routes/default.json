@@ -1,0 +1,8 @@
+{
+  "$schema": "../../schemas/route.schema.json",
+  "id": "drums-route",
+  "bus": "drums",
+  "device": "IAC Driver Bus 1",
+  "channel": 1,
+  "enabled": true
+}

@@ -61,16 +61,17 @@ export interface SceneTarget {
 export type MappingTarget = ParameterTarget | MacroTarget | SceneTarget;
 
 // Transform types
-export type TransformType = 'linear' | 'exponential';
+export type TransformType = 'linear' | 'exponential' | 'logarithmic';
 
 export interface TransformConfig {
   type: TransformType;
   inputRange: [number, number];
   outputRange: [number, number];
-  curve?: number; // Required for exponential
+  curve?: number; // Required for exponential/logarithmic
   smoothing?: number; // Milliseconds for time-based averaging
   deadZone?: number; // Ignore values 0-n at start
   deadZoneEnd?: number; // Ignore values at end
+  quantize?: number; // Snap to discrete steps (e.g., 12 for chromatic scale)
 }
 
 export interface MappingEntity {
@@ -79,6 +80,7 @@ export interface MappingEntity {
   target: MappingTarget;
   transform?: TransformConfig; // Not required for scene triggers
   quantize?: 'bar' | 'beat'; // For scene triggers
+  threshold?: number; // Minimum CC value to trigger (0-127), useful for buttons that send 127 on press, 0 on release
 }
 
 /**
@@ -122,12 +124,25 @@ export class MappingEntityValidator {
       quantize = config.quantize;
     }
 
+    // Validate threshold (for CC-triggered scene changes)
+    let threshold: number | undefined;
+    if (config.threshold !== undefined) {
+      if (typeof config.threshold !== 'number') {
+        throw new Error('Threshold must be a number');
+      }
+      if (config.threshold < 0 || config.threshold > 127) {
+        throw new Error('Threshold must be between 0 and 127');
+      }
+      threshold = config.threshold;
+    }
+
     return {
       id: config.id,
       source,
       target,
       transform,
-      quantize
+      quantize,
+      threshold
     };
   }
 
@@ -233,7 +248,7 @@ export class MappingEntityValidator {
     }
 
     // Validate type
-    if (!['linear', 'exponential'].includes(transform.type)) {
+    if (!['linear', 'exponential', 'logarithmic'].includes(transform.type)) {
       throw new Error(`Invalid transformation type: ${transform.type}`);
     }
 
@@ -257,17 +272,17 @@ export class MappingEntityValidator {
     if (sourceType === 'pitchbend') {
       const [min, max] = transform.inputRange;
       if (min !== -8192 || max !== 8191) {
-        throw new Error('Pitch bend inputRange must be [-8192, 8191]');
+        throw new Error('Pitchbend inputRange must be -8192 to 8191');
       }
     }
 
-    // Validate curve for exponential
-    if (transform.type === 'exponential') {
+    // Validate curve for exponential and logarithmic
+    if (transform.type === 'exponential' || transform.type === 'logarithmic') {
       if (typeof transform.curve !== 'number') {
-        throw new Error('Curve is required for exponential transformation');
+        throw new Error(`Curve is required for ${transform.type} transformation`);
       }
       if (transform.curve <= 0) {
-        throw new Error('Curve must be positive for exponential transformation');
+        throw new Error(`Curve must be positive for ${transform.type} transformation`);
       }
     }
 
@@ -292,7 +307,107 @@ export class MappingEntityValidator {
       }
     }
 
+    // Validate deadZoneEnd
+    if (transform.deadZoneEnd !== undefined) {
+      if (typeof transform.deadZoneEnd !== 'number') {
+        throw new Error('Dead zone end must be a number');
+      }
+      const rangeSize = Math.abs(transform.inputRange[1] - transform.inputRange[0]);
+      if (Math.abs(transform.deadZoneEnd) > rangeSize / 2) {
+        throw new Error('Dead zone end exceeds half of input range');
+      }
+    }
+
+    // Validate quantize
+    if (transform.quantize !== undefined) {
+      if (typeof transform.quantize !== 'number') {
+        throw new Error('Quantize must be a number');
+      }
+      if (transform.quantize <= 0) {
+        throw new Error('Quantize must be positive');
+      }
+    }
+
     return transform as TransformConfig;
+  }
+
+  /**
+   * Detect circular dependencies in mapping configurations (T067)
+   *
+   * Circular dependency occurs when:
+   * - A parameter is mapped to a macro
+   * - That macro targets the same parameter (or another parameter in the same pattern)
+   * - Creating a feedback loop
+   *
+   * This is a graph analysis problem - we check for cycles in the dependency graph.
+   *
+   * @param mappings Array of all mapping configurations
+   * @throws Error if circular dependency is detected
+   */
+  static detectCircularDependencies(mappings: MappingEntity[]): void {
+    // Build dependency graph
+    const graph = new Map<string, Set<string>>();
+
+    for (const mapping of mappings) {
+      // Source identifier
+      let sourceKey: string | null = null;
+      if (mapping.source.type === 'parameter') {
+        sourceKey = `param:${mapping.source.patternId}:${mapping.source.parameter}`;
+      }
+
+      // Target identifier
+      let targetKey: string | null = null;
+      if (mapping.target.type === 'parameter') {
+        targetKey = `param:${mapping.target.patternId}:${mapping.target.parameter}`;
+      } else if (mapping.target.type === 'macro') {
+        targetKey = `macro:${mapping.target.macroId}`;
+      }
+
+      // Add edge if both source and target are control flow elements
+      if (sourceKey && targetKey) {
+        if (!graph.has(sourceKey)) {
+          graph.set(sourceKey, new Set());
+        }
+        graph.get(sourceKey)!.add(targetKey);
+      }
+    }
+
+    // DFS cycle detection
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+
+    const hasCycle = (node: string): boolean => {
+      if (recursionStack.has(node)) {
+        return true; // Cycle detected
+      }
+      if (visited.has(node)) {
+        return false; // Already processed
+      }
+
+      visited.add(node);
+      recursionStack.add(node);
+
+      const neighbors = graph.get(node);
+      if (neighbors) {
+        for (const neighbor of neighbors) {
+          if (hasCycle(neighbor)) {
+            return true;
+          }
+        }
+      }
+
+      recursionStack.delete(node);
+      return false;
+    };
+
+    // Check all nodes for cycles
+    for (const node of graph.keys()) {
+      if (!visited.has(node)) {
+        if (hasCycle(node)) {
+          throw new Error(`Circular dependency detected in mapping configuration involving: ${node}`);
+        }
+      }
+    }
   }
 }
 
@@ -300,6 +415,112 @@ export class MappingEntityValidator {
  * Loader for Mapping entity from file
  */
 export class MappingEntityLoader {
+  /**
+   * Normalize file format to internal entity format
+   * Handles alternative field names from example files
+   */
+  private static normalizeConfig(config: any): any {
+    const normalized: any = { ...config };
+
+    // Normalize source: 'input' -> 'source'
+    if (config.input && !config.source) {
+      const input = config.input;
+      normalized.source = {
+        type: input.type,
+        channel: input.channel,
+        device: input.device === 'any' ? undefined : input.device,
+      };
+
+      // CC number -> controller
+      if (input.type === 'cc' && input.number !== undefined) {
+        normalized.source.controller = input.number;
+      }
+
+      // Note number
+      if (input.type === 'note' && input.number !== undefined) {
+        normalized.source.note = input.number;
+      }
+
+      delete normalized.input;
+    }
+
+    // Normalize target: 'macro' -> 'macroId'
+    if (config.target) {
+      normalized.target = { ...config.target };
+      if (config.target.macro && !config.target.macroId) {
+        normalized.target.macroId = config.target.macro;
+        delete normalized.target.macro;
+      }
+    }
+
+    // Normalize transform: inputMin/inputMax/outputMin/outputMax -> inputRange/outputRange
+    if (config.transform) {
+      const t = config.transform;
+      normalized.transform = { ...t };
+
+      // Infer type from curve string if present
+      if (t.curve && typeof t.curve === 'string' && !t.type) {
+        normalized.transform.type = t.curve;
+      }
+
+      // Default to linear if no type specified
+      if (!normalized.transform.type) {
+        normalized.transform.type = 'linear';
+      }
+
+      // Convert range format
+      if (t.inputMin !== undefined && t.inputMax !== undefined && !t.inputRange) {
+        normalized.transform.inputRange = [t.inputMin, t.inputMax];
+        delete normalized.transform.inputMin;
+        delete normalized.transform.inputMax;
+      }
+
+      if (t.outputMin !== undefined && t.outputMax !== undefined && !t.outputRange) {
+        normalized.transform.outputRange = [t.outputMin, t.outputMax];
+        delete normalized.transform.outputMin;
+        delete normalized.transform.outputMax;
+      }
+
+      // smooth -> smoothing
+      if (t.smooth !== undefined && t.smoothing === undefined) {
+        normalized.transform.smoothing = t.smooth;
+        delete normalized.transform.smooth;
+      }
+
+      // deadzone -> deadZone
+      if (t.deadzone !== undefined && t.deadZone === undefined) {
+        normalized.transform.deadZone = t.deadzone;
+        delete normalized.transform.deadzone;
+      }
+
+      // Remove curve string (it's now the type)
+      if (typeof normalized.transform.curve === 'string') {
+        delete normalized.transform.curve;
+      }
+
+      // Add curve exponent for exponential/logarithmic if not present
+      if ((normalized.transform.type === 'exponential' || normalized.transform.type === 'logarithmic') &&
+          normalized.transform.curve === undefined) {
+        normalized.transform.curve = 2.0; // Default curve exponent
+      }
+    }
+
+    // Normalize behavior fields (for scene triggers)
+    if (config.behavior) {
+      // behavior.quantize -> quantize
+      if (config.behavior.quantize && !config.quantize) {
+        normalized.quantize = config.behavior.quantize;
+      }
+      // behavior.threshold -> threshold
+      if (config.behavior.threshold !== undefined && config.threshold === undefined) {
+        normalized.threshold = config.behavior.threshold;
+      }
+      delete normalized.behavior;
+    }
+
+    return normalized;
+  }
+
   static load(filePath: string): MappingEntity {
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
@@ -314,13 +535,86 @@ export class MappingEntityLoader {
         throw new Error(`Unsupported file type: ${ext}`);
       }
 
-      return MappingEntityValidator.validate(config);
+      // Normalize config before validation
+      const normalizedConfig = this.normalizeConfig(config);
+      console.log(`[MappingEntityLoader] Normalized config for ${path.basename(filePath)}:`, JSON.stringify(normalizedConfig, null, 2));
+
+      return MappingEntityValidator.validate(normalizedConfig);
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         throw new Error(`Mapping file not found: ${filePath}`);
       }
       if (error instanceof SyntaxError) {
         throw new Error(`Failed to parse mapping file ${filePath}: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Load multiple mappings from a directory
+   */
+  static loadFromDirectory(dirPath: string): MappingEntity[] {
+    if (!fs.existsSync(dirPath)) {
+      throw new Error(`Mapping directory not found: ${dirPath}`);
+    }
+
+    const files = fs.readdirSync(dirPath).filter(f =>
+      f.endsWith('.json') || f.endsWith('.yaml') || f.endsWith('.yml')
+    );
+    const mappings: MappingEntity[] = [];
+
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      try {
+        mappings.push(this.load(filePath));
+      } catch (error) {
+        // Log error but continue loading other mappings
+        console.error(`Error loading mapping ${file}:`, error);
+      }
+    }
+
+    return mappings;
+  }
+
+  /**
+   * Load mappings from array in single JSON/YAML file
+   */
+  static loadArrayFromFile(filePath: string): MappingEntity[] {
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Mapping file not found: ${filePath}`);
+    }
+
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const ext = path.extname(filePath).toLowerCase();
+
+      let data: any;
+      if (ext === '.yaml' || ext === '.yml') {
+        data = yaml.load(content);
+      } else if (ext === '.json') {
+        data = JSON.parse(content);
+      } else {
+        throw new Error(`Unsupported file type: ${ext}`);
+      }
+
+      if (!Array.isArray(data)) {
+        throw new Error('Mapping file must contain an array of mappings');
+      }
+
+      return data.map((config, index) => {
+        try {
+          return MappingEntityValidator.validate(config);
+        } catch (error) {
+          if (error instanceof Error) {
+            throw new Error(`Mapping at index ${index}: ${error.message}`);
+          }
+          throw error;
+        }
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to load mappings from ${filePath}: ${error.message}`);
       }
       throw error;
     }

@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/mapping.schema.json",
+  "id": "ch2-button-main",
+  "name": "Channel 2 Button → Main Scene",
+  "description": "PBF4 Channel 2 Button (CC3 value 127) triggers main scene, quantized to bar boundary",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 2,
+    "type": "cc",
+    "number": 3
+  },
+  "target": {
+    "type": "scene",
+    "sceneId": "main"
+  },
+  "behavior": {
+    "quantize": "bar",
+    "threshold": 64
+  }
+}
