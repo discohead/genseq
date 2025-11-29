@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch3-button-breakdown",
+  "name": "Channel 3 Button → Breakdown Scene",
+  "description": "PBF4 Channel 3 Button triggers breakdown scene (hi-hat focus)",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 3,
+    "type": "cc",
+    "number": 3
+  },
+  "target": {
+    "type": "scene",
+    "sceneId": "breakdown"
+  },
+  "transform": {
+    "inputMin": 64,
+    "inputMax": 127,
+    "outputMin": 0,
+    "outputMax": 1,
+    "curve": "linear"
+  }
+}

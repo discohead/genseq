@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch4-fader-lead-velocity",
+  "name": "Channel 4 Fader → Lead Velocity",
+  "description": "PBF4 Channel 4 Fader controls lead pattern velocity",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 4,
+    "type": "cc",
+    "number": 2
+  },
+  "target": {
+    "type": "parameter",
+    "patternId": "lead",
+    "parameter": "velocity"
+  },
+  "transform": {
+    "inputMin": 0,
+    "inputMax": 127,
+    "outputMin": 50,
+    "outputMax": 127,
+    "curve": "linear",
+    "smooth": 20
+  }
+}

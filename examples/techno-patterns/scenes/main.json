@@ -1,0 +1,41 @@
+{
+  "$schema": "../../../schemas/scene.schema.json",
+  "id": "main",
+  "name": "Main Scene",
+  "description": "Full techno groove - all patterns active",
+  "activePatterns": ["kick-bass", "hihat", "chord", "lead"],
+  "patternOverrides": {
+    "kick-bass": {
+      "kick": {
+        "velocity": 100,
+        "enabled": true
+      },
+      "bass": {
+        "velocity": 90,
+        "enabled": true
+      }
+    },
+    "hihat": {
+      "closed": {
+        "velocity": 80
+      },
+      "open": {
+        "enabled": true
+      }
+    },
+    "chord": {
+      "velocity": 85
+    },
+    "lead": {
+      "velocity": 90
+    }
+  },
+  "macros": {
+    "master-density": 0.7,
+    "master-velocity": 100
+  },
+  "transition": {
+    "type": "queued",
+    "quantize": "bar"
+  }
+}

@@ -6,7 +6,17 @@ import {
   PhasePattern,
   type PhasePatternConfig,
   type PatternGeneratorFn,
-  type PatternContext
+  type PatternContext,
+  // Techno patterns
+  TechnoKickBassPattern,
+  type TechnoKickBassConfig,
+  TechnoHiHatPattern,
+  type TechnoHiHatConfig,
+  TechnoChordPattern,
+  type TechnoChordConfig,
+  TechnoLeadPattern,
+  type TechnoLeadConfig,
+  TECHNO_DEFAULTS,
 } from '@genseq/patterns';
 import type { PatternEntity } from '../config/entities/PatternEntity';
 
@@ -14,6 +24,10 @@ import type { PatternEntity } from '../config/entities/PatternEntity';
 import euclideanSchema from '../../../../schemas/pattern.schema.json';
 import probabilitySchema from '../../../../schemas/patterns/probability.schema.json';
 import phaseSchema from '../../../../schemas/patterns/phase.schema.json';
+import technoKickBassSchema from '../../../../schemas/techno-kick-bass.schema.json';
+import technoHiHatSchema from '../../../../schemas/techno-hihat.schema.json';
+import technoChordSchema from '../../../../schemas/techno-chord.schema.json';
+import technoLeadSchema from '../../../../schemas/techno-lead.schema.json';
 
 /**
  * T014-T017: PatternFactory - Centralized pattern instance creation and validation
@@ -52,7 +66,7 @@ import phaseSchema from '../../../../schemas/patterns/phase.schema.json';
  */
 
 export interface PatternCreationResult {
-  instance: EuclideanPattern | ProbabilityPattern | PhasePattern;
+  instance: EuclideanPattern | ProbabilityPattern | PhasePattern | TechnoKickBassPattern | TechnoHiHatPattern | TechnoChordPattern | TechnoLeadPattern;
   generator: PatternGeneratorFn;
 }
 
@@ -66,7 +80,7 @@ export interface ValidationResult {
   errors: ValidationError[];
 }
 
-type PatternType = 'euclidean' | 'probability' | 'phase' | 'script';
+type PatternType = 'euclidean' | 'probability' | 'phase' | 'script' | 'techno-kick-bass' | 'techno-hihat' | 'techno-chord' | 'techno-lead';
 
 export class PatternFactory {
   /**
@@ -80,7 +94,7 @@ export class PatternFactory {
     // Validate pattern type
     if (!this.isValidPatternType(entity.type)) {
       throw new Error(
-        `Unknown pattern type: ${entity.type}. Valid types: euclidean, probability, phase, script`
+        `Unknown pattern type: ${entity.type}. Valid types: euclidean, probability, phase, script, techno-kick-bass, techno-hihat, techno-chord, techno-lead`
       );
     }
 
@@ -94,7 +108,7 @@ export class PatternFactory {
     }
 
     // Create pattern instance based on type
-    let instance: EuclideanPattern | ProbabilityPattern | PhasePattern;
+    let instance: EuclideanPattern | ProbabilityPattern | PhasePattern | TechnoKickBassPattern | TechnoHiHatPattern | TechnoChordPattern | TechnoLeadPattern;
 
     switch (entity.type) {
       case 'euclidean':
@@ -105,6 +119,18 @@ export class PatternFactory {
         break;
       case 'phase':
         instance = this.createPhaseInstance(entity);
+        break;
+      case 'techno-kick-bass':
+        instance = this.createTechnoKickBassInstance(entity);
+        break;
+      case 'techno-hihat':
+        instance = this.createTechnoHiHatInstance(entity);
+        break;
+      case 'techno-chord':
+        instance = this.createTechnoChordInstance(entity);
+        break;
+      case 'techno-lead':
+        instance = this.createTechnoLeadInstance(entity);
         break;
       case 'script':
         throw new Error('Script patterns not yet supported in PatternFactory');
@@ -154,6 +180,18 @@ export class PatternFactory {
         case 'phase':
           this.createPhaseInstance(tempEntity);
           break;
+        case 'techno-kick-bass':
+          this.createTechnoKickBassInstance(tempEntity);
+          break;
+        case 'techno-hihat':
+          this.createTechnoHiHatInstance(tempEntity);
+          break;
+        case 'techno-chord':
+          this.createTechnoChordInstance(tempEntity);
+          break;
+        case 'techno-lead':
+          this.createTechnoLeadInstance(tempEntity);
+          break;
         case 'script':
           errors.push({
             path: '/parameters',
@@ -197,6 +235,14 @@ export class PatternFactory {
         return probabilitySchema;
       case 'phase':
         return phaseSchema;
+      case 'techno-kick-bass':
+        return technoKickBassSchema;
+      case 'techno-hihat':
+        return technoHiHatSchema;
+      case 'techno-chord':
+        return technoChordSchema;
+      case 'techno-lead':
+        return technoLeadSchema;
       case 'script':
         return euclideanSchema.properties.script || {};
       default:
@@ -213,7 +259,7 @@ export class PatternFactory {
    * @returns Generator function that calls instance.tick()
    */
   static createGenerator(
-    instance: EuclideanPattern | ProbabilityPattern | PhasePattern
+    instance: EuclideanPattern | ProbabilityPattern | PhasePattern | TechnoKickBassPattern | TechnoHiHatPattern | TechnoChordPattern | TechnoLeadPattern
   ): PatternGeneratorFn {
     return (context: PatternContext) => {
       return instance.tick(context);
@@ -223,7 +269,7 @@ export class PatternFactory {
   // Private helper methods
 
   private static isValidPatternType(type: string): type is PatternType {
-    return ['euclidean', 'probability', 'phase', 'script'].includes(type);
+    return ['euclidean', 'probability', 'phase', 'script', 'techno-kick-bass', 'techno-hihat', 'techno-chord', 'techno-lead'].includes(type);
   }
 
   /**
@@ -420,5 +466,110 @@ export class PatternFactory {
         errors.push('gateLength must be a positive number');
       }
     }
+  }
+
+  /**
+   * Create TechnoKickBass instance from entity
+   */
+  private static createTechnoKickBassInstance(entity: PatternEntity): TechnoKickBassPattern {
+    const params = entity.parameters as any;
+    const config: TechnoKickBassConfig = {
+      type: 'techno-kick-bass',
+      enabled: entity.enabled ?? true,
+      length: (entity.length ?? 1) as 1 | 2 | 4,
+      bus: entity.bus ?? 'main',
+      kick: {
+        ...TECHNO_DEFAULTS.kickBass.kick,
+        ...params.kick,
+      },
+      bass: {
+        ...TECHNO_DEFAULTS.kickBass.bass,
+        ...params.bass,
+      },
+    };
+    return new TechnoKickBassPattern(config);
+  }
+
+  /**
+   * Create TechnoHiHat instance from entity
+   */
+  private static createTechnoHiHatInstance(entity: PatternEntity): TechnoHiHatPattern {
+    const params = entity.parameters as any;
+    const config: TechnoHiHatConfig = {
+      type: 'techno-hihat',
+      enabled: entity.enabled ?? true,
+      length: (entity.length ?? 1) as 1 | 2 | 4,
+      bus: entity.bus ?? 'main',
+      channel: entity.channel ?? 10,
+      closed: {
+        ...TECHNO_DEFAULTS.hiHat.closed,
+        ...params.closed,
+      },
+      open: {
+        ...TECHNO_DEFAULTS.hiHat.open,
+        ...params.open,
+      },
+      ride: {
+        ...TECHNO_DEFAULTS.hiHat.ride,
+        ...params.ride,
+      },
+      swing: params.swing ?? TECHNO_DEFAULTS.hiHat.swing,
+      ghostVelocity: params.ghostVelocity ?? TECHNO_DEFAULTS.hiHat.ghostVelocity,
+      ghostProbability: params.ghostProbability ?? TECHNO_DEFAULTS.hiHat.ghostProbability,
+    };
+    return new TechnoHiHatPattern(config);
+  }
+
+  /**
+   * Create TechnoChord instance from entity
+   */
+  private static createTechnoChordInstance(entity: PatternEntity): TechnoChordPattern {
+    const params = entity.parameters as any;
+    const config: TechnoChordConfig = {
+      type: 'techno-chord',
+      enabled: entity.enabled ?? true,
+      length: (entity.length ?? 4) as 1 | 2 | 4,
+      bus: entity.bus ?? 'main',
+      channel: entity.channel ?? 2,
+      voicing: {
+        ...TECHNO_DEFAULTS.chord.voicing,
+        ...params.voicing,
+      },
+      rhythm: {
+        ...TECHNO_DEFAULTS.chord.rhythm,
+        ...params.rhythm,
+      },
+      velocity: params.velocity ?? TECHNO_DEFAULTS.chord.velocity,
+      duration: params.duration ?? TECHNO_DEFAULTS.chord.duration,
+      velocityCurve: params.velocityCurve ?? TECHNO_DEFAULTS.chord.velocityCurve,
+    };
+    return new TechnoChordPattern(config);
+  }
+
+  /**
+   * Create TechnoLead instance from entity
+   */
+  private static createTechnoLeadInstance(entity: PatternEntity): TechnoLeadPattern {
+    const params = entity.parameters as any;
+    const config: TechnoLeadConfig = {
+      type: 'techno-lead',
+      enabled: entity.enabled ?? true,
+      length: (entity.length ?? 1) as 1 | 2 | 4,
+      bus: entity.bus ?? 'main',
+      channel: entity.channel ?? 3,
+      phrase: {
+        ...TECHNO_DEFAULTS.lead.phrase,
+        ...params.phrase,
+      },
+      rhythm: {
+        ...TECHNO_DEFAULTS.lead.rhythm,
+        ...params.rhythm,
+      },
+      velocity: params.velocity ?? TECHNO_DEFAULTS.lead.velocity,
+      velocityContour: params.velocityContour ?? TECHNO_DEFAULTS.lead.velocityContour,
+      legato: params.legato ?? TECHNO_DEFAULTS.lead.legato,
+      regenerateOn: params.regenerateOn ?? TECHNO_DEFAULTS.lead.regenerateOn,
+    };
+    return new TechnoLeadPattern(config);
   }
 }

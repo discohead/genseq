@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch2-fader-kick-velocity",
+  "name": "Channel 2 Fader → Kick Velocity",
+  "description": "PBF4 Channel 2 Fader controls kick drum velocity",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 2,
+    "type": "cc",
+    "number": 2
+  },
+  "target": {
+    "type": "parameter",
+    "patternId": "kick-bass",
+    "parameter": "kick.velocity"
+  },
+  "transform": {
+    "inputMin": 0,
+    "inputMax": 127,
+    "outputMin": 60,
+    "outputMax": 127,
+    "curve": "linear",
+    "smooth": 20
+  }
+}

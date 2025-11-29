@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../schemas/scene.schema.json",
+  "id": "regenerate-lead",
+  "name": "Regenerate Lead",
+  "description": "Triggers lead phrase regeneration without changing active patterns",
+  "patternOverrides": {
+    "lead": {
+      "regenerateOn": "trigger"
+    }
+  },
+  "transition": {
+    "type": "immediate",
+    "quantize": "beat"
+  }
+}

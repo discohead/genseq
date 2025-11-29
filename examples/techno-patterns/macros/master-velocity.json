@@ -1,0 +1,49 @@
+{
+  "$schema": "../../../schemas/macro.schema.json",
+  "id": "master-velocity",
+  "name": "Master Velocity",
+  "description": "Controls velocity across all techno patterns",
+  "defaultValue": 100,
+  "targets": [
+    {
+      "patternId": "kick-bass",
+      "parameter": "kick.velocity",
+      "scaling": {
+        "min": 60,
+        "max": 127
+      }
+    },
+    {
+      "patternId": "kick-bass",
+      "parameter": "bass.velocity",
+      "scaling": {
+        "min": 50,
+        "max": 110
+      }
+    },
+    {
+      "patternId": "hihat",
+      "parameter": "closed.velocity",
+      "scaling": {
+        "min": 40,
+        "max": 100
+      }
+    },
+    {
+      "patternId": "chord",
+      "parameter": "velocity",
+      "scaling": {
+        "min": 50,
+        "max": 110
+      }
+    },
+    {
+      "patternId": "lead",
+      "parameter": "velocity",
+      "scaling": {
+        "min": 60,
+        "max": 120
+      }
+    }
+  ]
+}

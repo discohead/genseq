@@ -12,7 +12,14 @@ import { PatternEntityLoader, type PatternEntity } from './config/entities/Patte
 import { RouteEntityLoader, type RouteEntity } from './config/entities/RouteEntity';
 import { MappingEntityLoader, type MappingEntity } from './config/entities/MappingEntity';
 import { MacroEntityLoader, type MacroEntity } from './config/entities/MacroEntity';
-import { EuclideanPattern, type PatternContext } from '@genseq/patterns';
+import {
+  EuclideanPattern,
+  TechnoKickBassPattern,
+  TechnoHiHatPattern,
+  TechnoChordPattern,
+  TechnoLeadPattern,
+  type PatternContext
+} from '@genseq/patterns';
 import { HotReloadCoordinator } from './config/HotReloadCoordinator';
 import { PatternFileWatcher } from './hotreload/PatternFileWatcher';
 import { RouteFileWatcher } from './hotreload/RouteFileWatcher';
@@ -796,6 +803,34 @@ export class GenSeqEngine extends EventEmitter {
         pattern,
         (context: PatternContext) => euclideanPattern.tick(context),
         euclideanPattern // Pass instance for hot-reload
+      );
+    } else if (pattern.type === 'techno-kick-bass') {
+      const technoPattern = new TechnoKickBassPattern(pattern.parameters as any);
+      this.patternExecutor.addPattern(
+        pattern,
+        (context: PatternContext) => technoPattern.tick(context),
+        technoPattern
+      );
+    } else if (pattern.type === 'techno-hihat') {
+      const technoPattern = new TechnoHiHatPattern(pattern.parameters as any);
+      this.patternExecutor.addPattern(
+        pattern,
+        (context: PatternContext) => technoPattern.tick(context),
+        technoPattern
+      );
+    } else if (pattern.type === 'techno-chord') {
+      const technoPattern = new TechnoChordPattern(pattern.parameters as any);
+      this.patternExecutor.addPattern(
+        pattern,
+        (context: PatternContext) => technoPattern.tick(context),
+        technoPattern
+      );
+    } else if (pattern.type === 'techno-lead') {
+      const technoPattern = new TechnoLeadPattern(pattern.parameters as any);
+      this.patternExecutor.addPattern(
+        pattern,
+        (context: PatternContext) => technoPattern.tick(context),
+        technoPattern
       );
     }
   }

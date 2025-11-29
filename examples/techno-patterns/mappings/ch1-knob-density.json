@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch1-knob-density",
+  "name": "Channel 1 Knob → Master Density",
+  "description": "PBF4 Channel 1 Knob controls master density for all patterns",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 1,
+    "type": "cc",
+    "number": 1
+  },
+  "target": {
+    "type": "macro",
+    "macro": "master-density"
+  },
+  "transform": {
+    "inputMin": 0,
+    "inputMax": 127,
+    "outputMin": 0.0,
+    "outputMax": 1.0,
+    "curve": "linear",
+    "smooth": 50
+  }
+}

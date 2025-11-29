@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch4-knob-chord-density",
+  "name": "Channel 4 Knob → Chord Density",
+  "description": "PBF4 Channel 4 Knob controls chord stab density/probability",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 4,
+    "type": "cc",
+    "number": 1
+  },
+  "target": {
+    "type": "parameter",
+    "patternId": "chord",
+    "parameter": "rhythm.density"
+  },
+  "transform": {
+    "inputMin": 0,
+    "inputMax": 127,
+    "outputMin": 0,
+    "outputMax": 100,
+    "curve": "linear",
+    "smooth": 30
+  }
+}

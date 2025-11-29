@@ -14,7 +14,7 @@
     "type": {
       "type": "string",
       "description": "Pattern generator type",
-      "enum": ["euclidean", "probability", "phase", "script"]
+      "enum": ["euclidean", "probability", "phase", "script", "techno-kick-bass", "techno-hihat", "techno-chord", "techno-lead"]
     },
     "bus": {
       "type": "string",
@@ -133,6 +133,10 @@
     { "required": ["euclidean"] },
     { "required": ["probability"] },
     { "required": ["phase"] },
-    { "required": ["script"] }
+    { "required": ["script"] },
+    { "properties": { "type": { "const": "techno-kick-bass" } } },
+    { "properties": { "type": { "const": "techno-hihat" } } },
+    { "properties": { "type": { "const": "techno-chord" } } },
+    { "properties": { "type": { "const": "techno-lead" } } }
   ]
 }

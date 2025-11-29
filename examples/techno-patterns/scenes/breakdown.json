@@ -1,0 +1,40 @@
+{
+  "$schema": "../../../schemas/scene.schema.json",
+  "id": "breakdown",
+  "name": "Breakdown Scene",
+  "description": "Atmospheric breakdown - hi-hat and melodic focus, no kick",
+  "activePatterns": ["hihat", "chord", "lead"],
+  "patternOverrides": {
+    "hihat": {
+      "closed": {
+        "velocity": 60
+      },
+      "open": {
+        "enabled": true,
+        "velocity": 70
+      },
+      "swing": 15,
+      "ghostProbability": 30
+    },
+    "chord": {
+      "velocity": 70,
+      "rhythm": {
+        "density": 50
+      }
+    },
+    "lead": {
+      "velocity": 80,
+      "rhythm": {
+        "restProbability": 30
+      }
+    }
+  },
+  "macros": {
+    "master-density": 0.4,
+    "master-velocity": 80
+  },
+  "transition": {
+    "type": "queued",
+    "quantize": "bar"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../schemas/scene.schema.json",
+  "id": "intro",
+  "name": "Intro Scene",
+  "description": "Minimal techno - kick only with sparse bass",
+  "activePatterns": ["kick-bass"],
+  "patternOverrides": {
+    "kick-bass": {
+      "kick": {
+        "velocity": 90
+      },
+      "bass": {
+        "enabled": false
+      }
+    }
+  },
+  "macros": {
+    "master-density": 0.2,
+    "master-velocity": 70
+  },
+  "transition": {
+    "type": "queued",
+    "quantize": "bar"
+  }
+}

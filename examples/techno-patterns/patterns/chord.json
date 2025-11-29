@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../schemas/techno-chord.schema.json",
+  "id": "chord",
+  "name": "Techno Chord Stab",
+  "type": "techno-chord",
+  "bus": "synths",
+  "enabled": true,
+  "length": 4,
+  "channel": 2,
+  "voicing": {
+    "root": 60,
+    "scale": "minor",
+    "notes": 3,
+    "inversion": 0,
+    "spread": 12
+  },
+  "rhythm": {
+    "positions": [1, 9, 25, 41],
+    "density": 80,
+    "syncopation": 1
+  },
+  "velocity": 85,
+  "duration": 0.5,
+  "velocityCurve": "accent-first"
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch1-button-intro",
+  "name": "Channel 1 Button → Intro Scene",
+  "description": "PBF4 Channel 1 Button triggers intro scene (minimal kick)",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 1,
+    "type": "cc",
+    "number": 3
+  },
+  "target": {
+    "type": "scene",
+    "sceneId": "intro"
+  },
+  "transform": {
+    "inputMin": 64,
+    "inputMax": 127,
+    "outputMin": 0,
+    "outputMax": 1,
+    "curve": "linear"
+  }
+}

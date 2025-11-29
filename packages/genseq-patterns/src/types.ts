@@ -36,7 +36,7 @@ export interface MidiEvent {
 export interface Pattern {
   id: string;
   name: string;
-  type: 'euclidean' | 'probability' | 'phase' | 'script';
+  type: 'euclidean' | 'probability' | 'phase' | 'script' | 'techno-kick-bass' | 'techno-hihat' | 'techno-chord' | 'techno-lead';
   enabled: boolean;
   length: number; // bars
   division: number; // note division

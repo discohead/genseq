@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch4-button-regenerate",
+  "name": "Channel 4 Button → Lead Regenerate",
+  "description": "PBF4 Channel 4 Button triggers lead phrase regeneration",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 4,
+    "type": "cc",
+    "number": 3
+  },
+  "target": {
+    "type": "scene",
+    "sceneId": "regenerate-lead"
+  },
+  "transform": {
+    "inputMin": 64,
+    "inputMax": 127,
+    "outputMin": 0,
+    "outputMax": 1,
+    "curve": "linear"
+  }
+}

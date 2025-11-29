@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../schemas/techno-kick-bass.schema.json",
+  "id": "kick-bass",
+  "name": "Techno Kick & Bass",
+  "type": "techno-kick-bass",
+  "bus": "drums",
+  "enabled": true,
+  "length": 1,
+  "kick": {
+    "note": 36,
+    "channel": 10,
+    "velocity": 100,
+    "accentVelocity": 127,
+    "enabled": true
+  },
+  "bass": {
+    "notes": [36, 36, 39, 36],
+    "channel": 1,
+    "velocity": 90,
+    "duration": 0.25,
+    "syncopation": 1,
+    "octave": 2,
+    "enabled": true
+  }
+}

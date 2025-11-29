@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "techno-kick-bass.schema.json",
+  "title": "TechnoKickBassPattern",
+  "description": "Combined kick drum and bass line generator for techno music",
+  "type": "object",
+  "required": ["type", "kick", "bass"],
+  "properties": {
+    "type": {
+      "const": "techno-kick-bass",
+      "description": "Pattern type identifier"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether pattern is active"
+    },
+    "length": {
+      "type": "integer",
+      "enum": [1, 2, 4],
+      "default": 1,
+      "description": "Pattern length in bars"
+    },
+    "bus": {
+      "type": "string",
+      "default": "main",
+      "description": "Output bus for routing"
+    },
+    "kick": {
+      "type": "object",
+      "description": "Kick drum configuration",
+      "required": ["note", "channel", "velocity"],
+      "properties": {
+        "note": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 36,
+          "description": "MIDI note number (36 = C1, standard kick)"
+        },
+        "channel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16,
+          "default": 10,
+          "description": "MIDI channel (10 = drums)"
+        },
+        "velocity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 100,
+          "description": "Base velocity"
+        },
+        "accentVelocity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 127,
+          "description": "Velocity on beat 1 for accent"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable kick"
+        }
+      },
+      "additionalProperties": false
+    },
+    "bass": {
+      "type": "object",
+      "description": "Bass line configuration",
+      "required": ["notes", "channel", "velocity"],
+      "properties": {
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 127
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "default": [36],
+          "description": "Note sequence (1-8 MIDI notes)"
+        },
+        "channel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16,
+          "default": 1,
+          "description": "MIDI channel"
+        },
+        "velocity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 90,
+          "description": "Base velocity"
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0.0625,
+          "maximum": 4.0,
+          "default": 0.25,
+          "description": "Note duration in beats"
+        },
+        "syncopation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15,
+          "default": 1,
+          "description": "Offset from kick in 16th notes"
+        },
+        "octave": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8,
+          "default": 2,
+          "description": "Base octave for bass notes"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable bass"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

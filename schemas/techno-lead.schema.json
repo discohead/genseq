@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "techno-lead.schema.json",
+  "title": "TechnoLeadPattern",
+  "description": "Looping melodic phrase generator for techno",
+  "type": "object",
+  "required": ["type", "phrase", "rhythm"],
+  "properties": {
+    "type": {
+      "const": "techno-lead",
+      "description": "Pattern type identifier"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether pattern is active"
+    },
+    "length": {
+      "type": "integer",
+      "enum": [1, 2, 4],
+      "default": 1,
+      "description": "Pattern length in bars"
+    },
+    "bus": {
+      "type": "string",
+      "default": "main",
+      "description": "Output bus for routing"
+    },
+    "channel": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 3,
+      "description": "MIDI channel"
+    },
+    "phrase": {
+      "type": "object",
+      "description": "Phrase definition",
+      "required": ["scale", "root"],
+      "properties": {
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 127
+          },
+          "minItems": 0,
+          "maxItems": 8,
+          "default": [],
+          "description": "Fixed note sequence (used when mode is 'fixed')"
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 6,
+          "description": "Number of notes to generate (used when mode is 'generative')"
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["major", "minor", "dorian", "phrygian", "lydian", "mixolydian", "aeolian", "locrian", "chromatic", "pentatonic", "blues"],
+          "default": "minor",
+          "description": "Scale name for quantization"
+        },
+        "root": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 60,
+          "description": "Root note MIDI number"
+        },
+        "octaveRange": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "default": 1,
+          "description": "Octave range for phrase"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["fixed", "generative"],
+          "default": "generative",
+          "description": "Phrase generation mode"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rhythm": {
+      "type": "object",
+      "description": "Rhythm configuration",
+      "properties": {
+        "division": {
+          "type": "integer",
+          "enum": [4, 8, 16, 32],
+          "default": 16,
+          "description": "Note division (4=quarter, 8=8th, 16=16th, 32=32nd)"
+        },
+        "restProbability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 15,
+          "description": "Probability of rest"
+        },
+        "durationVariation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 20,
+          "description": "Duration variation percentage"
+        }
+      },
+      "additionalProperties": false
+    },
+    "velocity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 127,
+      "default": 90,
+      "description": "Base velocity"
+    },
+    "velocityContour": {
+      "type": "string",
+      "enum": ["flat", "accent-first", "accent-last", "random"],
+      "default": "accent-first",
+      "description": "Velocity contour for phrase"
+    },
+    "legato": {
+      "type": "boolean",
+      "default": false,
+      "description": "Overlap notes slightly"
+    },
+    "regenerateOn": {
+      "type": "string",
+      "enum": ["never", "cycle", "trigger"],
+      "default": "cycle",
+      "description": "When to regenerate phrase"
+    }
+  },
+  "additionalProperties": false
+}

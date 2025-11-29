@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "techno-chord.schema.json",
+  "title": "TechnoChordPattern",
+  "description": "Sparse syncopated chord stab generator",
+  "type": "object",
+  "required": ["type", "voicing", "rhythm"],
+  "properties": {
+    "type": {
+      "const": "techno-chord",
+      "description": "Pattern type identifier"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether pattern is active"
+    },
+    "length": {
+      "type": "integer",
+      "enum": [1, 2, 4],
+      "default": 4,
+      "description": "Pattern length in bars"
+    },
+    "bus": {
+      "type": "string",
+      "default": "main",
+      "description": "Output bus for routing"
+    },
+    "channel": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 2,
+      "description": "MIDI channel"
+    },
+    "voicing": {
+      "type": "object",
+      "description": "Chord voicing configuration",
+      "required": ["notes", "root", "scale"],
+      "properties": {
+        "notes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "default": 3,
+          "description": "Number of notes per chord"
+        },
+        "root": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 60,
+          "description": "Root note MIDI number (60 = C4)"
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["major", "minor", "dorian", "phrygian", "lydian", "mixolydian", "aeolian", "locrian", "chromatic", "pentatonic", "blues"],
+          "default": "minor",
+          "description": "Scale name for quantization"
+        },
+        "inversion": {
+          "type": "integer",
+          "enum": [0, 1, 2],
+          "default": 0,
+          "description": "Chord inversion"
+        },
+        "spread": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12,
+          "default": 4,
+          "description": "Semitones between notes"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rhythm": {
+      "type": "object",
+      "description": "Rhythm configuration",
+      "required": ["positions"],
+      "properties": {
+        "positions": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "default": [3, 11, 27],
+          "description": "16th note positions within pattern (1-indexed)"
+        },
+        "syncopation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 480,
+          "default": 0,
+          "description": "Offset from downbeat in ticks"
+        },
+        "density": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 100,
+          "description": "Probability each position triggers"
+        }
+      },
+      "additionalProperties": false
+    },
+    "velocity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 127,
+      "default": 100,
+      "description": "Base velocity"
+    },
+    "duration": {
+      "type": "number",
+      "minimum": 0.0625,
+      "maximum": 4.0,
+      "default": 0.5,
+      "description": "Note duration in beats"
+    },
+    "velocityCurve": {
+      "type": "string",
+      "enum": ["flat", "decay", "accent-first"],
+      "default": "flat",
+      "description": "Velocity curve for attack shaping"
+    }
+  },
+  "additionalProperties": false
+}

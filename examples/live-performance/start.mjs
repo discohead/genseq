@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectPath = __dirname;
 
 // Enable verbose logging
-const DEBUG = true;
+const DEBUG = false;
 
 function log(...args) {
   if (DEBUG) console.log(`[${new Date().toISOString()}]`, ...args);

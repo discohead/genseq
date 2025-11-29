@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch2-button-main",
+  "name": "Channel 2 Button → Main Scene",
+  "description": "PBF4 Channel 2 Button triggers main scene (full groove)",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 2,
+    "type": "cc",
+    "number": 3
+  },
+  "target": {
+    "type": "scene",
+    "sceneId": "main"
+  },
+  "transform": {
+    "inputMin": 64,
+    "inputMax": 127,
+    "outputMin": 0,
+    "outputMax": 1,
+    "curve": "linear"
+  }
+}

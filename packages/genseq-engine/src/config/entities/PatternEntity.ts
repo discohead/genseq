@@ -11,7 +11,7 @@ import * as yaml from 'js-yaml';
 export interface PatternEntity {
   id: string;
   name: string;
-  type: 'euclidean' | 'probability' | 'phase' | 'script';
+  type: 'euclidean' | 'probability' | 'phase' | 'script' | 'techno-kick-bass' | 'techno-hihat' | 'techno-chord' | 'techno-lead';
   enabled: boolean;
   length: number; // bars
   division: number; // note division
@@ -61,7 +61,7 @@ export class PatternEntityValidator {
       throw new Error('Pattern name is required and must be a non-empty string');
     }
 
-    const validTypes = ['euclidean', 'probability', 'phase', 'script'];
+    const validTypes = ['euclidean', 'probability', 'phase', 'script', 'techno-kick-bass', 'techno-hihat', 'techno-chord', 'techno-lead'];
     if (!validTypes.includes(config.type)) {
       throw new Error(`Pattern type must be one of [${validTypes.join(', ')}], got ${config.type}`);
     }
@@ -102,7 +102,14 @@ export class PatternEntityValidator {
 
     // Validate parameters based on type
     // Parameters can be under 'parameters' or under the type-specific key (e.g., 'euclidean')
-    const parameters = config.parameters || config[config.type] || {};
+    // For techno patterns, extract all type-specific properties
+    let parameters: any;
+    if (config.type.startsWith('techno-')) {
+      // Techno patterns: extract type-specific config (kick, bass, closed, open, etc.)
+      parameters = this.extractTechnoParameters(config);
+    } else {
+      parameters = config.parameters || config[config.type] || {};
+    }
     this.validateParameters(config.type, parameters);
 
     // Validate script path for script patterns
@@ -126,6 +133,23 @@ export class PatternEntityValidator {
       scriptPath: config.scriptPath,
       scriptParams: config.scriptParams
     };
+  }
+
+  /**
+   * Extract techno-specific parameters from config
+   * Techno patterns have properties like kick, bass, closed, open, chord, lead at root level
+   */
+  private static extractTechnoParameters(config: any): any {
+    // Fields that are NOT pattern parameters (they're entity metadata)
+    const metadataFields = ['$schema', 'id', 'name', 'type', 'bus', 'enabled', 'length', 'division', 'note', 'channel'];
+
+    const params: any = {};
+    for (const key of Object.keys(config)) {
+      if (!metadataFields.includes(key)) {
+        params[key] = config[key];
+      }
+    }
+    return params;
   }
 
   private static validateParameters(type: string, params: any): void {

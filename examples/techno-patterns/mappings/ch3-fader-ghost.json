@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch3-fader-ghost",
+  "name": "Channel 3 Fader → Ghost Probability",
+  "description": "PBF4 Channel 3 Fader controls hi-hat ghost note probability",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 3,
+    "type": "cc",
+    "number": 2
+  },
+  "target": {
+    "type": "parameter",
+    "patternId": "hihat",
+    "parameter": "ghostProbability"
+  },
+  "transform": {
+    "inputMin": 0,
+    "inputMax": 127,
+    "outputMin": 0,
+    "outputMax": 100,
+    "curve": "linear",
+    "smooth": 20
+  }
+}

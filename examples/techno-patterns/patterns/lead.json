@@ -1,0 +1,27 @@
+{
+  "$schema": "../../../schemas/techno-lead.schema.json",
+  "id": "lead",
+  "name": "Techno Lead",
+  "type": "techno-lead",
+  "bus": "synths",
+  "enabled": true,
+  "length": 2,
+  "channel": 3,
+  "phrase": {
+    "mode": "generative",
+    "notes": [],
+    "length": 6,
+    "root": 60,
+    "scale": "minor",
+    "octaveRange": 1
+  },
+  "rhythm": {
+    "division": 16,
+    "restProbability": 20,
+    "durationVariation": 15
+  },
+  "velocity": 90,
+  "velocityContour": "accent-first",
+  "legato": false,
+  "regenerateOn": "cycle"
+}

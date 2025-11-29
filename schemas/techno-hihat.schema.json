@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "techno-hihat.schema.json",
+  "title": "TechnoHiHatPattern",
+  "description": "Multi-layer hi-hat pattern with closed, open, and ride layers",
+  "type": "object",
+  "required": ["type", "closed"],
+  "properties": {
+    "type": {
+      "const": "techno-hihat",
+      "description": "Pattern type identifier"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether pattern is active"
+    },
+    "length": {
+      "type": "integer",
+      "enum": [1, 2, 4],
+      "default": 1,
+      "description": "Pattern length in bars"
+    },
+    "bus": {
+      "type": "string",
+      "default": "main",
+      "description": "Output bus for routing"
+    },
+    "channel": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 10,
+      "description": "MIDI channel for all hi-hat sounds"
+    },
+    "closed": {
+      "type": "object",
+      "description": "Closed hi-hat layer",
+      "required": ["note", "velocity"],
+      "properties": {
+        "note": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 42,
+          "description": "MIDI note number"
+        },
+        "velocity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 80,
+          "description": "Base velocity"
+        },
+        "density": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 100,
+          "description": "Density percentage"
+        },
+        "position": {
+          "type": "string",
+          "enum": ["offbeat", "onbeat", "all-8th", "all-16th"],
+          "default": "offbeat",
+          "description": "Position mode"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable this layer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "open": {
+      "type": "object",
+      "description": "Open hi-hat layer",
+      "properties": {
+        "note": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 46,
+          "description": "MIDI note number"
+        },
+        "velocity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 90,
+          "description": "Base velocity"
+        },
+        "pattern": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "default": [],
+          "description": "Beat positions for open hi-hat (1-indexed)"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable/disable this layer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ride": {
+      "type": "object",
+      "description": "Ride cymbal layer",
+      "properties": {
+        "note": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 51,
+          "description": "MIDI note number"
+        },
+        "velocity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "default": 70,
+          "description": "Base velocity"
+        },
+        "density": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 0,
+          "description": "Density percentage"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable/disable this layer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "swing": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 0,
+      "description": "Swing amount percentage"
+    },
+    "ghostVelocity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 127,
+      "default": 40,
+      "description": "Velocity for ghost notes"
+    },
+    "ghostProbability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 0,
+      "description": "Probability of ghost notes"
+    }
+  },
+  "additionalProperties": false
+}

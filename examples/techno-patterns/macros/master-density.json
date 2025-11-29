@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../schemas/macro.schema.json",
+  "id": "master-density",
+  "name": "Master Density",
+  "description": "Controls pattern density across all techno generators",
+  "defaultValue": 1.0,
+  "targets": [
+    {
+      "patternId": "hihat",
+      "parameter": "ghostProbability",
+      "scaling": {
+        "min": 0,
+        "max": 50
+      }
+    },
+    {
+      "patternId": "chord",
+      "parameter": "rhythm.density",
+      "scaling": {
+        "min": 30,
+        "max": 100
+      }
+    },
+    {
+      "patternId": "lead",
+      "parameter": "rhythm.density",
+      "scaling": {
+        "min": 30,
+        "max": 100
+      }
+    }
+  ]
+}

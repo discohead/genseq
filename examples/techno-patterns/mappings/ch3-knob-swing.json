@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch3-knob-swing",
+  "name": "Channel 3 Knob → Hi-Hat Swing",
+  "description": "PBF4 Channel 3 Knob controls hi-hat swing amount (0-50%)",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 3,
+    "type": "cc",
+    "number": 1
+  },
+  "target": {
+    "type": "parameter",
+    "patternId": "hihat",
+    "parameter": "swing"
+  },
+  "transform": {
+    "inputMin": 0,
+    "inputMax": 127,
+    "outputMin": 0,
+    "outputMax": 50,
+    "curve": "linear",
+    "smooth": 30
+  }
+}

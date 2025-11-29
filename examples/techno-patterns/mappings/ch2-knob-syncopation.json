@@ -1,0 +1,27 @@
+{
+  "$schema": "../../../schemas/mapping.schema.json",
+  "id": "ch2-knob-syncopation",
+  "name": "Channel 2 Knob → Bass Syncopation",
+  "description": "PBF4 Channel 2 Knob controls bass syncopation offset (0-15 steps)",
+  "enabled": true,
+  "input": {
+    "device": "Grid",
+    "channel": 2,
+    "type": "cc",
+    "number": 1
+  },
+  "target": {
+    "type": "parameter",
+    "patternId": "kick-bass",
+    "parameter": "bass.syncopation"
+  },
+  "transform": {
+    "inputMin": 0,
+    "inputMax": 127,
+    "outputMin": 0,
+    "outputMax": 15,
+    "curve": "linear",
+    "quantize": 1,
+    "smooth": 20
+  }
+}

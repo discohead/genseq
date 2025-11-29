@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schemas/project.schema.json",
+  "name": "Techno Pattern Generators Demo",
+  "version": "1.0.0",
+  "description": "Demonstrates all 4 techno pattern generators with PBF4 controller integration",
+  "author": "GenSeq",
+  "bpm": 128,
+  "ppq": 96,
+  "midiInputDevice": "Grid"
+}
